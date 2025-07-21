@@ -101,5 +101,27 @@ def send_email_notification(name, email, message):
     except Exception as e:
         print("Email error:", e)
 
+@app.route('/robots.txt')
+def robots():
+    return app.send_static_file('robots.txt')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    pages = []
+    base_url = 'https://deepmanimishra.onrender.com'
+
+    for rule in app.url_map.iter_rules():
+        if "GET" in rule.methods and not rule.arguments:
+            pages.append(f"{base_url}{rule.rule}")
+
+    sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>'
+    sitemap_xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    for page in pages:
+        sitemap_xml += f'<url><loc>{page}</loc></url>'
+    sitemap_xml += '</urlset>'
+
+    return sitemap_xml, 200, {'Content-Type': 'application/xml'}
+
+
 if __name__ == "__main__":
     app.run(debug=True)
