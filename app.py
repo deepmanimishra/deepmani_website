@@ -1,26 +1,38 @@
 import os
+import sqlite3
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import smtplib
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
 from flask import Flask, render_template, request, redirect, url_for, flash
-import mysql.connector
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Needed for flash messages
 
-# MySQL Configuration
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="D.M.Babu@95087",
-    database="deepmani_site"
-)
-cursor = db.cursor()
+# === SQLite Configuration ===
+DB_PATH = "site.db"
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# === Create table if it doesn't exist ===
+def init_db():
+    with get_db_connection() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                message TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
+init_db()
 
 @app.route('/')
 def home():
@@ -50,9 +62,10 @@ def contact():
             return redirect(url_for('contact'))
 
         try:
-            # Save to database
-            cursor.execute("INSERT INTO contacts (name, email, message) VALUES (%s, %s, %s)", (name, email, message))
-            db.commit()
+            # Save to local SQLite database
+            with get_db_connection() as conn:
+                conn.execute("INSERT INTO contacts (name, email, message) VALUES (?, ?, ?)", (name, email, message))
+                conn.commit()
 
             # Send email notification
             send_email_notification(name, email, message)
@@ -86,7 +99,7 @@ def send_email_notification(name, email, message):
         server.sendmail(sender_email, receiver_email, msg.as_string())
         server.quit()
     except Exception as e:
-        print("Database or email error:", e)
+        print("Email error:", e)
 
 if __name__ == "__main__":
     app.run(debug=True)
