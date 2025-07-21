@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<section class="fade-in" style="max-width: 700px; margin: auto; padding: 3rem 2rem; background: rgba(255,255,255,0.05); border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); backdrop-filter: blur(10px);">
+  <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 1rem;">📬 Get in Touch</h2>
+  <p style="text-align: center; font-size: 1.1rem; opacity: 0.8; margin-bottom: 2rem;">I'd love to hear from you. Whether it's a question, a business inquiry, or just a friendly hello — send me a message below.</p>
+
+  <form action="/contact" method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    
+    <div style="display: flex; flex-direction: column;">
+      <label for="name" style="margin-bottom: 0.5rem;">Your Name</label>
+      <input type="text" id="name" name="name" required placeholder="John Doe" style="padding: 0.9rem 1.2rem; border: none; border-radius: 0.75rem; background-color: rgba(255,255,255,0.1); color: inherit; font-size: 1rem;">
+    </div>
+
+    <div style="display: flex; flex-direction: column;">
+      <label for="email" style="margin-bottom: 0.5rem;">Your Email</label>
+      <input type="email" id="email" name="email" required placeholder="you@example.com" style="padding: 0.9rem 1.2rem; border: none; border-radius: 0.75rem; background-color: rgba(255,255,255,0.1); color: inherit; font-size: 1rem;">
+    </div>
+
+    <div style="display: flex; flex-direction: column;">
+      <label for="message" style="margin-bottom: 0.5rem;">Your Message</label>
+      <textarea id="message" name="message" rows="6" required placeholder="Write something awesome..." style="padding: 1rem 1.2rem; border: none; border-radius: 0.75rem; background-color: rgba(255,255,255,0.1); color: inherit; font-size: 1rem; resize: vertical;"></textarea>
+    </div>
+
+    <button type="submit" style="padding: 1rem 1.5rem; background-color: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; border: none; border-radius: 0.75rem; cursor: pointer; transition: background-color 0.3s;">
+      Send Message
+    </button>
+  </form>
+</section>
+
+{% endblock %}
