@@ -2,41 +2,46 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Language" content="en" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Deepmani Mishra - Official Personal Website" />
-  <title>Deepmani Mishra</title>
-
   <meta name="keywords" content="Deepmani Mishra, portfolio, developer, projects, resume, contact" />
   <meta name="author" content="Deepmani Mishra" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://deepmanimishra.onrender.com/" />
 
-  <!-- Open Graph (Facebook, LinkedIn) -->
+  <!-- Open Graph -->
   <meta property="og:title" content="Deepmani Mishra – Portfolio Website" />
   <meta property="og:description" content="Explore my projects, resume, and get in touch!" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://deepmanimishra.onrender.com/" />
-  <meta property="og:image" content="{{ url_for('static', filename='/static/images/profile.jpg') }}" />
+  <meta property="og:image" content="{{ url_for('static', filename='images/profile.jpg') }}" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Deepmani Mishra – Portfolio Website" />
   <meta name="twitter:description" content="Explore my projects, resume, and get in touch!" />
-  <meta name="twitter:image" content="{{ url_for('static', filename='/static/images/profile.jpg') }}" />
+  <meta name="twitter:image" content="{{ url_for('static', filename='images/profile.jpg') }}" />
+
+  <!-- Schema.org -->
+  <script type="application/ld+json"> ... </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-
-  <link rel="shortcut icon" href="/static/images/profile.jpg" type="image/x-icon">
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-
-  <!-- Font Awesome (Latest) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/profile.jpg') }}" type="image/x-icon">
 
   <!-- Custom Styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
+
 
 <body>
 
