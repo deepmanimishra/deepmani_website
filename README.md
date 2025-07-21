@@ -1,3 +1,4 @@
+HEAD
 
 # Deepmani Mishra Personal Website
 
@@ -11,3 +12,6 @@
 2. Edit DB credentials in `app.py`
 3. Run with `python app.py`
 4. Visit `http://localhost:5000`
+
+# deepmani_website
+
