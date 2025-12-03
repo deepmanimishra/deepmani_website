@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -10,10 +10,10 @@
   <meta name="author" content="Deepmani Mishra" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://deepmanimishra.onrender.com/" />
-  <!-- shortcut browser icon -->
+  shortcut browser icon
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" type="image/png">
 
-  <!-- Social / Open Graph + Twitter -->
+  Social / Open Graph + Twitter 
   <meta property="og:title" content="Deepmani Mishra – Portfolio Website" />
   <meta property="og:description" content="Explore my projects, resume, and get in touch!" />
   <meta property="og:type" content="website" />
@@ -27,25 +27,25 @@
 
   <script type="application/ld+json"> …JSON‑LD schema… </script>
 
-  <!-- Preconnect + Fonts -->
+ Preconnect + Fonts
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Favicon -->
+  Favicon 
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-  <!-- Font Awesome -->
+   Font Awesome 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <!-- Custom Styles -->
+  Custom Styles
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 
 <body>
 
-  <!-- Header -->
+   Header 
   <header class="header">
     <div class="signature">Deepmani Mishra</div>
     <button id="toggle-theme" title="Toggle theme">
@@ -53,7 +53,7 @@
     </button>
   </header>
 
-  <!-- Hero -->
+   Hero 
   <section class="hero fade-in">
     <div class="hero-img">
       <img src="{{ url_for('static', filename='images/profile.jpg') }}" alt="Deepmani Mishra" />
@@ -62,7 +62,7 @@
     <p>Student | Entrepreneur | Developer</p>
   </section>
 
-  <!-- Navigation -->
+   Navigation 
   <nav class="nav fade-in">
     <a href="{{ url_for('home') }}">Home</a>
     <a href="{{ url_for('about') }}">About</a>
@@ -71,12 +71,12 @@
     <a href="{{ url_for('contact') }}">Contact</a>
   </nav>
 
-  <!-- Main Content -->
+   Main Content 
   <main class="container fade-in">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Footer -->
+Footer 
   <footer class="fade-in">
     <p>Connect with me:</p>
     <div class="hero-socials">
@@ -87,7 +87,7 @@
     <p style="margin-top: 1rem;">&copy; 2025 Deepmani Mishra. All rights reserved.</p>
   </footer>
 
-  <!-- Scripts -->
+  Scripts 
   <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
-</html>
+</html> 

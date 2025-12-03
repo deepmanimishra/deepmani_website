@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import mimetypes  # <--- IMPORTANT: Added for 3D site support
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Needed for flash messages
+
+# === IMPORTANT: Fix for 3D Website Files ===
+# This tells the server that .glb files are 3D models, not text.
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('model/gltf-binary', '.glb')
+mimetypes.add_type('model/gltf+json', '.gltf')
 
 # === SQLite Configuration ===
 DB_PATH = "site.db"
@@ -36,70 +44,26 @@ init_db()
 
 @app.route('/')
 def home():
+    # This renders your new 3D index.html
     return render_template("index.html")
 
-@app.route('/about')
-def about():
-    return render_template("about.html")
+# --- COMMENTED OUT ROUTES (Saved for later) ---
+# @app.route('/about')
+# def about():
+#     return render_template("about.html")
 
-@app.route('/projects')
-def projects():
-    return render_template("projects.html")
+# @app.route('/projects')
+# def projects():
+#     return render_template("projects.html")
 
-@app.route('/resume')
-def resume():
-    return render_template("resume.html")
+# @app.route('/resume')
+# def resume():
+#     return render_template("resume.html")
 
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
-        message = request.form.get('message', '').strip()
-
-        if not name or not email or not message:
-            flash("All fields are required.", "error")
-            return redirect(url_for('contact'))
-
-        try:
-            # Save to local SQLite database
-            with get_db_connection() as conn:
-                conn.execute("INSERT INTO contacts (name, email, message) VALUES (?, ?, ?)", (name, email, message))
-                conn.commit()
-
-            # Send email notification
-            send_email_notification(name, email, message)
-
-            flash("Thank you! Your message has been sent.", "success")
-        except Exception as e:
-            print("Database or email error:", e)
-            flash("Something went wrong. Please try again later.", "error")
-
-        return redirect(url_for('contact'))
-
-    return render_template("contact.html")
-
-def send_email_notification(name, email, message):
-    sender_email = os.getenv("SENDER_EMAIL")
-    receiver_email = os.getenv("RECEIVER_EMAIL")
-    password = os.getenv("EMAIL_PASSWORD")
-
-    subject = "New Contact Form Submission"
-    body = f"Name: {name}\nEmail: {email}\nMessage:\n{message}"
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = sender_email
-    msg["To"] = receiver_email
-
-    try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, msg.as_string())
-        server.quit()
-    except Exception as e:
-        print("Email error:", e)
+# @app.route('/contact', methods=['GET', 'POST'])
+# def contact():
+#     # ... (Your previous contact logic) ...
+#     return render_template("contact.html")
 
 @app.route('/robots.txt')
 def robots():
@@ -108,11 +72,14 @@ def robots():
 @app.route('/sitemap.xml')
 def sitemap():
     pages = []
+    # UPDATE THIS URL to your actual domain if different
     base_url = 'https://deepmanimishra.onrender.com'
 
     for rule in app.url_map.iter_rules():
         if "GET" in rule.methods and not rule.arguments:
-            pages.append(f"{base_url}{rule.rule}")
+            # We filter out static files to keep sitemap clean
+            if "/static/" not in rule.rule:
+                pages.append(f"{base_url}{rule.rule}")
 
     sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>'
     sitemap_xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -121,7 +88,6 @@ def sitemap():
     sitemap_xml += '</urlset>'
 
     return sitemap_xml, 200, {'Content-Type': 'application/xml'}
-
 
 if __name__ == "__main__":
     app.run(debug=True)
