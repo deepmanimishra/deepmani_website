@@ -12,6 +12,7 @@ app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
 # === CONFIGURATION ===
+# Ensure this matches the key you added in Render
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -30,27 +31,25 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
+        # Contacts & Posts
         conn.execute('CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT, message TEXT, date TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, title TEXT, description TEXT, category TEXT, image_url TEXT, likes INTEGER DEFAULT 0, date TEXT)')
-        # New Profile Table
+        
+        # Profile Table (For editable Bio/Image)
         conn.execute('CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, bio TEXT, sub_bio TEXT, image_url TEXT)')
         
-        # Check if profile exists, if not, add default
+        # Seed Profile if empty
         cur = conn.execute('SELECT * FROM profile WHERE id = 1')
         if not cur.fetchone():
             conn.execute('INSERT INTO profile (id, name, bio, sub_bio, image_url) VALUES (1, ?, ?, ?, ?)',
                          ("DEEPMANI MISHRA", "Student | IIT Madras", "Co-Founder | PRAMAANIK", "https://scontent.fdbd5-1.fna.fbcdn.net/v/t39.30808-6/583332345_1532238231159902_8868260256540002026_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1f5xHM5tN4IQ7kNvwGahYju&_nc_oc=AdmdrVjLwoi5QOvQIfNC_2bqwpUTQclSwrozc3LLXmspTqASm5dyTp5q1VfC1ULhNOt_RsJz-6h56-jT1VbpHI_I&_nc_zt=23&_nc_ht=scontent.fdbd5-1.fna&_nc_gid=J1l1FyZOC8Xzj7i0tSSPvg&oh=00_AflmiXEinKWylfA8rGKkrReIBDDR3TbQP5D7FnUhz1CSyQ&oe=693590AC"))
-            
-        # Check if posts exist, if not, add a welcome post
-        cur = conn.execute('SELECT * FROM posts')
-        if not cur.fetchone():
-             conn.execute('INSERT INTO posts (title, description, category, image_url, date) VALUES (?, ?, ?, ?, ?)',
-                          ("Welcome to My Portfolio", "This is a 3D interactive portfolio built with Python Flask and Three.js. Login as Admin to edit this!", "Tech", "", datetime.now().strftime("%b %Y")))
+        
         conn.commit()
 
 init_db()
 
 # === ROUTES ===
+
 @app.route('/')
 def home(): return render_template("index.html")
 
@@ -61,14 +60,15 @@ def handle_profile():
     if request.method == 'POST':
         if request.headers.get('Admin-Key') != 'admin123': return jsonify({"error": "Unauthorized"}), 403
         d = request.json
-        conn.execute('UPDATE profile SET name=?, bio=?, sub_bio=?, image_url=? WHERE id=1', (d['name'], d['bio'], d['sub_bio'], d['image']))
+        conn.execute('UPDATE profile SET name=?, bio=?, sub_bio=?, image_url=? WHERE id=1', 
+                     (d['name'], d['bio'], d['sub_bio'], d['image']))
         conn.commit()
         return jsonify({"success": True})
     
     row = conn.execute('SELECT * FROM profile WHERE id=1').fetchone()
     return jsonify(dict(row))
 
-# --- POSTS API (GET, ADD, EDIT, DELETE) ---
+# --- POSTS API (Get, Add, Edit, Delete) ---
 @app.route('/api/posts', methods=['GET', 'POST'])
 def handle_posts():
     conn = get_db()
@@ -103,32 +103,31 @@ def like_post(id):
         conn.commit()
     return jsonify({"success": True})
 
-# --- SMART CONNECT & CHAT ---
+# --- AI FEATURES ---
 @app.route('/api/smart_connect', methods=['POST'])
 def smart_connect():
     if not GEMINI_API_KEY: return jsonify({"response": "API Key Missing"})
     data = request.json
-    prompt = f"Draft a professional LinkedIn connection message from 'A Visitor' to 'Deepmani Mishra'. Context: {data['intent']}. Keep it short and polite."
     try:
         model = genai.GenerativeModel('gemini-pro')
+        prompt = f"Write a short, professional LinkedIn connection message from a visitor to Deepmani Mishra. Context: {data['intent']}."
         response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
-        return jsonify({"response": "Could not generate draft. Please try again."})
+        return jsonify({"response": "Error generating text."})
 
 @app.route('/api/chat', methods=['POST'])
 def ai_chat():
-    if not GEMINI_API_KEY: return jsonify({"response": "Error: Gemini API Key is missing in Render settings."})
+    if not GEMINI_API_KEY: return jsonify({"response": "Error: API Key Missing"})
     data = request.json
     try:
         model = genai.GenerativeModel('gemini-pro')
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"You are the AI of Deepmani Mishra (Student IIT Madras, Founder PRAMAANIK). Answer briefly. User: {data['message']}")
+        response = chat.send_message(f"You are the AI Assistant of Deepmani Mishra (Student IIT Madras). Keep answers short. User: {data['message']}")
         return jsonify({"response": response.text})
     except Exception as e:
-        return jsonify({"response": f"System Error: {str(e)}"})
+        return jsonify({"response": "My brain is tired. Try again."})
 
-# --- CONTACT ---
 @app.route('/api/contact', methods=['POST'])
 def save_contact():
     d = request.json

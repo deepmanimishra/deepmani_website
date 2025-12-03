@@ -1,7 +1,7 @@
 let isAdmin = false;
 let adminKey = "";
 
-// --- 1. 3D SCENE (FIXED MOUSE TRACKING) ---
+// --- 1. 3D SCENE ---
 const initThreeJS = () => {
     const container = document.getElementById('canvas-container');
     if(!container) return;
@@ -17,7 +17,6 @@ const initThreeJS = () => {
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    // Particles
     const particlesGeometry = new THREE.BufferGeometry();
     const count = 2000;
     const posArray = new Float32Array(count * 3);
@@ -27,15 +26,12 @@ const initThreeJS = () => {
     const mesh = new THREE.Points(particlesGeometry, material);
     scene.add(mesh);
 
-    // Torus Knot
     const geo2 = new THREE.TorusKnotGeometry(10, 3, 100, 16);
     const mat2 = new THREE.PointsMaterial({color: 0xff00ff, size: 0.1, transparent: true, opacity: 0.5});
     const torus = new THREE.Points(geo2, mat2);
     scene.add(torus);
 
-    // MOUSE TRACKING LOGIC
     let mouseX = 0, mouseY = 0;
-    let targetX = 0, targetY = 0;
     const windowHalfX = window.innerWidth / 2;
     const windowHalfY = window.innerHeight / 2;
 
@@ -46,18 +42,12 @@ const initThreeJS = () => {
 
     const animate = () => {
         requestAnimationFrame(animate);
-        targetX = mouseX * 0.001;
-        targetY = mouseY * 0.001;
-
-        // Smooth rotation based on mouse
-        mesh.rotation.y += 0.05 * (targetX - mesh.rotation.y);
-        mesh.rotation.x += 0.05 * (targetY - mesh.rotation.x);
-        torus.rotation.y += 0.05 * (targetX - torus.rotation.y);
-        torus.rotation.x += 0.05 * (targetY - torus.rotation.x);
-
-        // Auto rotation
+        // Sensitive tracking matches React feel
+        mesh.rotation.y += 0.05 * (mouseX * 0.001 - mesh.rotation.y);
+        mesh.rotation.x += 0.05 * (mouseY * 0.001 - mesh.rotation.x);
+        torus.rotation.y += 0.05 * (mouseX * 0.001 - torus.rotation.y);
+        torus.rotation.x += 0.05 * (mouseY * 0.001 - torus.rotation.x);
         mesh.rotation.z += 0.001;
-
         renderer.render(scene, camera);
     };
     animate();
@@ -69,7 +59,7 @@ const initThreeJS = () => {
     });
 };
 
-// --- 2. PROFILE & POSTS ---
+// --- 2. DATA LOADING ---
 async function loadProfile() {
     try {
         const res = await fetch('/api/profile');
@@ -80,12 +70,12 @@ async function loadProfile() {
         document.getElementById('hero-sub-bio').innerText = data.sub_bio;
         document.getElementById('profile-img').src = data.image_url;
         
-        // Populate Edit Modal Inputs
+        // Populate inputs for editing
         document.getElementById('pf-name').value = data.name;
         document.getElementById('pf-bio').value = data.bio;
         document.getElementById('pf-sub').value = data.sub_bio;
         document.getElementById('pf-img').value = data.image_url;
-    } catch(e) { console.error("Profile load error", e); }
+    } catch(e) { console.error("Profile Error", e); }
 }
 
 async function loadPosts() {
@@ -131,22 +121,22 @@ async function likePost(id) {
     loadPosts();
 }
 
-// --- 3. ADMIN FUNCTIONS ---
-function enableAdminMode() {
-    const pw = prompt("Enter Admin Password:");
+// --- 3. MODAL & ADMIN LOGIC (Replaces Alerts) ---
+function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+function verifyAdmin() {
+    const pw = document.getElementById('admin-password').value;
     if(pw === "admin123") {
         isAdmin = true;
         adminKey = pw;
         document.getElementById('add-post-btn').classList.remove('hidden');
-        document.getElementById('edit-profile-btn').classList.remove('hidden');
-        loadPosts(); // Reload to show buttons
-        alert("Admin Mode Enabled!");
+        document.getElementById('edit-profile-overlay').classList.replace('hidden', 'flex'); // Show edit overlay
+        toggleModal('login-modal');
+        loadPosts(); // Refresh to show edit buttons
     } else {
-        alert("Wrong Password");
+        alert("Incorrect Password");
     }
 }
-
-function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
 // Profile
 function openProfileModal() { toggleModal('profile-modal'); }
@@ -193,7 +183,6 @@ async function savePost() {
         category: document.getElementById('p-category').value,
         image: document.getElementById('p-image').value
     };
-    
     const url = id ? `/api/posts/${id}` : '/api/posts';
     const method = id ? 'PUT' : 'POST';
 
@@ -207,7 +196,7 @@ async function savePost() {
 }
 
 async function deletePost(id) {
-    if(!confirm("Delete this highlight?")) return;
+    if(!confirm("Are you sure you want to delete this highlight?")) return;
     await fetch(`/api/posts/${id}`, {
         method: 'DELETE',
         headers: {'Admin-Key': adminKey}
@@ -215,7 +204,7 @@ async function deletePost(id) {
     loadPosts();
 }
 
-// --- 4. SMART FEATURES (AI) ---
+// --- 4. SMART FEATURES ---
 async function runSmartConnect() {
     const intent = document.getElementById('smart-intent').value;
     const resBox = document.getElementById('smart-result');
@@ -239,8 +228,9 @@ async function sendAIChat() {
     const msg = input.value;
     if(!msg) return;
 
-    box.innerHTML += `<div class="text-right mb-2"><span class="bg-cyan-600 text-white px-3 py-1 rounded inline-block">${msg}</span></div>`;
+    box.innerHTML += `<div class="text-right mb-2"><span class="bg-cyan-600 text-white px-3 py-1 rounded inline-block text-sm">${msg}</span></div>`;
     input.value = "";
+    box.scrollTop = box.scrollHeight;
     
     const res = await fetch('/api/chat', {
         method: 'POST',
@@ -248,7 +238,7 @@ async function sendAIChat() {
         body: JSON.stringify({message: msg})
     });
     const data = await res.json();
-    box.innerHTML += `<div class="text-left mb-2"><span class="bg-white/10 text-gray-200 px-3 py-1 rounded inline-block">${data.response}</span></div>`;
+    box.innerHTML += `<div class="text-left mb-2"><span class="bg-white/10 text-gray-200 px-3 py-1 rounded inline-block text-sm">${data.response}</span></div>`;
     box.scrollTop = box.scrollHeight;
 }
 
