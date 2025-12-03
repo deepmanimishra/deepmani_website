@@ -4,146 +4,138 @@ import mimetypes
 import google.generativeai as genai
 from datetime import datetime
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# === 1. CONFIGURATION ===
-# OPTION A: Get from .env file (Recommended)
+# === CONFIGURATION ===
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
-
-# OPTION B: Paste directly here if .env fails (Delete this line for production!)
-# GEMINI_API_KEY = "AIzaSy....." 
-
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# MIME types for 3D files
 mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('model/gltf-binary', '.glb')
 
 DB_PATH = "site.db"
 
-# === 2. DATABASE SETUP ===
+# === DATABASE SETUP ===
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-# REPLACE your existing init_db function with this:
 def init_db():
-    with get_db_connection() as conn:
-        # 1. Create Contacts Table (You already have this)
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS contacts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                message TEXT NOT NULL,
-                date TEXT
-            )
-        ''')
-
-        # 2. Create Posts Table (NEW - Needed for Admin/Highlights)
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                description TEXT,
-                category TEXT,
-                image_url TEXT,
-                likes INTEGER DEFAULT 0,
-                date TEXT
-            )
-        ''')
+    with get_db() as conn:
+        conn.execute('CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT, message TEXT, date TEXT)')
+        conn.execute('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, title TEXT, description TEXT, category TEXT, image_url TEXT, likes INTEGER DEFAULT 0, date TEXT)')
+        # New Profile Table
+        conn.execute('CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY, name TEXT, bio TEXT, sub_bio TEXT, image_url TEXT)')
         
+        # Check if profile exists, if not, add default
+        cur = conn.execute('SELECT * FROM profile WHERE id = 1')
+        if not cur.fetchone():
+            conn.execute('INSERT INTO profile (id, name, bio, sub_bio, image_url) VALUES (1, ?, ?, ?, ?)',
+                         ("DEEPMANI MISHRA", "Student | IIT Madras", "Co-Founder | PRAMAANIK", "https://scontent.fdbd5-1.fna.fbcdn.net/v/t39.30808-6/583332345_1532238231159902_8868260256540002026_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1f5xHM5tN4IQ7kNvwGahYju&_nc_oc=AdmdrVjLwoi5QOvQIfNC_2bqwpUTQclSwrozc3LLXmspTqASm5dyTp5q1VfC1ULhNOt_RsJz-6h56-jT1VbpHI_I&_nc_zt=23&_nc_ht=scontent.fdbd5-1.fna&_nc_gid=J1l1FyZOC8Xzj7i0tSSPvg&oh=00_AflmiXEinKWylfA8rGKkrReIBDDR3TbQP5D7FnUhz1CSyQ&oe=693590AC"))
+            
+        # Check if posts exist, if not, add a welcome post
+        cur = conn.execute('SELECT * FROM posts')
+        if not cur.fetchone():
+             conn.execute('INSERT INTO posts (title, description, category, image_url, date) VALUES (?, ?, ?, ?, ?)',
+                          ("Welcome to My Portfolio", "This is a 3D interactive portfolio built with Python Flask and Three.js. Login as Admin to edit this!", "Tech", "", datetime.now().strftime("%b %Y")))
         conn.commit()
-    print("Database initialized successfully.")
 
-# === 3. ROUTES ===
+init_db()
 
+# === ROUTES ===
 @app.route('/')
-def home():
-    return render_template("index.html")
+def home(): return render_template("index.html")
 
-# --- API: GET POSTS ---
-@app.route('/api/posts')
-def get_posts():
-    try:
-        conn = get_db()
-        posts = conn.execute('SELECT * FROM posts ORDER BY id DESC').fetchall()
-        conn.close()
-        return jsonify([dict(row) for row in posts])
-    except Exception as e:
-        return jsonify([])
-
-# --- API: ADD POST (ADMIN) ---
-@app.route('/api/add_post', methods=['POST'])
-def add_post():
-    if request.headers.get('Admin-Key') != 'admin123': 
-        return jsonify({"error": "Unauthorized"}), 403
-
-    data = request.json
-    with get_db() as conn:
-        conn.execute('INSERT INTO posts (title, description, category, image_url, date) VALUES (?, ?, ?, ?, ?)',
-                     (data['title'], data['description'], data['category'], data['image'], datetime.now().strftime("%b %Y")))
+# --- PROFILE API ---
+@app.route('/api/profile', methods=['GET', 'POST'])
+def handle_profile():
+    conn = get_db()
+    if request.method == 'POST':
+        if request.headers.get('Admin-Key') != 'admin123': return jsonify({"error": "Unauthorized"}), 403
+        d = request.json
+        conn.execute('UPDATE profile SET name=?, bio=?, sub_bio=?, image_url=? WHERE id=1', (d['name'], d['bio'], d['sub_bio'], d['image']))
         conn.commit()
-    return jsonify({"success": True})
-
-# --- API: LIKE POST ---
-@app.route('/api/like/<int:post_id>', methods=['POST'])
-def like_post(post_id):
-    with get_db() as conn:
-        conn.execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', (post_id,))
-        conn.commit()
-    return jsonify({"success": True})
-
-# --- API: SAVE CONTACT MESSAGE ---
-@app.route('/api/contact', methods=['POST'])
-def save_contact():
-    data = request.json
-    try:
-        with get_db() as conn:
-            conn.execute('INSERT INTO contacts (name, email, message, date) VALUES (?, ?, ?, ?)',
-                         (data['name'], data['email'], data['message'], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-            conn.commit()
         return jsonify({"success": True})
-    except Exception as e:
-        print("Error saving contact:", e)
-        return jsonify({"success": False}), 500
+    
+    row = conn.execute('SELECT * FROM profile WHERE id=1').fetchone()
+    return jsonify(dict(row))
 
-# --- API: AI CHAT ---
+# --- POSTS API (GET, ADD, EDIT, DELETE) ---
+@app.route('/api/posts', methods=['GET', 'POST'])
+def handle_posts():
+    conn = get_db()
+    if request.method == 'POST': # Add Post
+        if request.headers.get('Admin-Key') != 'admin123': return jsonify({"error": "Unauthorized"}), 403
+        d = request.json
+        conn.execute('INSERT INTO posts (title, description, category, image_url, date) VALUES (?, ?, ?, ?, ?)',
+                     (d['title'], d['description'], d['category'], d['image'], datetime.now().strftime("%b %Y")))
+        conn.commit()
+        return jsonify({"success": True})
+    
+    posts = conn.execute('SELECT * FROM posts ORDER BY id DESC').fetchall()
+    return jsonify([dict(row) for row in posts])
+
+@app.route('/api/posts/<int:id>', methods=['PUT', 'DELETE'])
+def modify_post(id):
+    if request.headers.get('Admin-Key') != 'admin123': return jsonify({"error": "Unauthorized"}), 403
+    conn = get_db()
+    if request.method == 'DELETE':
+        conn.execute('DELETE FROM posts WHERE id = ?', (id,))
+    elif request.method == 'PUT':
+        d = request.json
+        conn.execute('UPDATE posts SET title=?, description=?, category=?, image_url=? WHERE id=?',
+                     (d['title'], d['description'], d['category'], d['image'], id))
+    conn.commit()
+    return jsonify({"success": True})
+
+@app.route('/api/like/<int:id>', methods=['POST'])
+def like_post(id):
+    with get_db() as conn:
+        conn.execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', (id,))
+        conn.commit()
+    return jsonify({"success": True})
+
+# --- SMART CONNECT & CHAT ---
+@app.route('/api/smart_connect', methods=['POST'])
+def smart_connect():
+    if not GEMINI_API_KEY: return jsonify({"response": "API Key Missing"})
+    data = request.json
+    prompt = f"Draft a professional LinkedIn connection message from 'A Visitor' to 'Deepmani Mishra'. Context: {data['intent']}. Keep it short and polite."
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        return jsonify({"response": response.text})
+    except Exception as e:
+        return jsonify({"response": "Could not generate draft. Please try again."})
+
 @app.route('/api/chat', methods=['POST'])
 def ai_chat():
-    if not GEMINI_API_KEY:
-        return jsonify({"response": "I need a Gemini API Key to think! Tell Deepmani to add it."})
-    
+    if not GEMINI_API_KEY: return jsonify({"response": "Error: Gemini API Key is missing in Render settings."})
     data = request.json
-    user_msg = data.get('message', '')
-    
-    # System Persona
-    system_prompt = """You are the AI Avatar of Deepmani Mishra. 
-    Deepmani is a Student at IIT Madras (BS in Data Science) and Co-Founder of PRAMAANIK.
-    He loves Python, AI, and Entrepreneurship.
-    Keep answers short, professional, and friendly."""
-    
     try:
         model = genai.GenerativeModel('gemini-pro')
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_prompt}\nUser Question: {user_msg}")
+        response = chat.send_message(f"You are the AI of Deepmani Mishra (Student IIT Madras, Founder PRAMAANIK). Answer briefly. User: {data['message']}")
         return jsonify({"response": response.text})
     except Exception as e:
-        print("Gemini Error:", e)
-        return jsonify({"response": "My brain is tired. Please try again later."})
+        return jsonify({"response": f"System Error: {str(e)}"})
 
-# --- SEO ROUTES ---
-@app.route('/robots.txt')
-def robots():
-    return app.send_static_file('robots.txt')
+# --- CONTACT ---
+@app.route('/api/contact', methods=['POST'])
+def save_contact():
+    d = request.json
+    with get_db() as conn:
+        conn.execute('INSERT INTO contacts (name, email, message, date) VALUES (?, ?, ?, ?)', (d['name'], d['email'], d['message'], datetime.now().strftime("%Y-%m-%d")))
+        conn.commit()
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(debug=True)
