@@ -1,93 +1,149 @@
 import os
 import sqlite3
-import mimetypes  # <--- IMPORTANT: Added for 3D site support
+import mimetypes
+import google.generativeai as genai
+from datetime import datetime
 from dotenv import load_dotenv
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 
 load_dotenv()
 
-import smtplib
-from email.mime.text import MIMEText
-from flask import Flask, render_template, request, redirect, url_for, flash
-
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for flash messages
+app.secret_key = "supersecretkey"
 
-# === IMPORTANT: Fix for 3D Website Files ===
-# This tells the server that .glb files are 3D models, not text.
+# === 1. CONFIGURATION ===
+# OPTION A: Get from .env file (Recommended)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
+
+# OPTION B: Paste directly here if .env fails (Delete this line for production!)
+# GEMINI_API_KEY = "AIzaSy....." 
+
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+# MIME types for 3D files
 mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('model/gltf-binary', '.glb')
-mimetypes.add_type('model/gltf+json', '.gltf')
 
-# === SQLite Configuration ===
 DB_PATH = "site.db"
 
-def get_db_connection():
+# === 2. DATABASE SETUP ===
+def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-# === Create table if it doesn't exist ===
+# REPLACE your existing init_db function with this:
 def init_db():
     with get_db_connection() as conn:
+        # 1. Create Contacts Table (You already have this)
         conn.execute('''
             CREATE TABLE IF NOT EXISTS contacts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 email TEXT NOT NULL,
-                message TEXT NOT NULL
+                message TEXT NOT NULL,
+                date TEXT
             )
         ''')
-        conn.commit()
 
-init_db()
+        # 2. Create Posts Table (NEW - Needed for Admin/Highlights)
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                description TEXT,
+                category TEXT,
+                image_url TEXT,
+                likes INTEGER DEFAULT 0,
+                date TEXT
+            )
+        ''')
+        
+        conn.commit()
+    print("Database initialized successfully.")
+
+# === 3. ROUTES ===
 
 @app.route('/')
 def home():
-    # This renders your new 3D index.html
     return render_template("index.html")
 
-# --- COMMENTED OUT ROUTES (Saved for later) ---
-# @app.route('/about')
-# def about():
-#     return render_template("about.html")
+# --- API: GET POSTS ---
+@app.route('/api/posts')
+def get_posts():
+    try:
+        conn = get_db()
+        posts = conn.execute('SELECT * FROM posts ORDER BY id DESC').fetchall()
+        conn.close()
+        return jsonify([dict(row) for row in posts])
+    except Exception as e:
+        return jsonify([])
 
-# @app.route('/projects')
-# def projects():
-#     return render_template("projects.html")
+# --- API: ADD POST (ADMIN) ---
+@app.route('/api/add_post', methods=['POST'])
+def add_post():
+    if request.headers.get('Admin-Key') != 'admin123': 
+        return jsonify({"error": "Unauthorized"}), 403
 
-# @app.route('/resume')
-# def resume():
-#     return render_template("resume.html")
+    data = request.json
+    with get_db() as conn:
+        conn.execute('INSERT INTO posts (title, description, category, image_url, date) VALUES (?, ?, ?, ?, ?)',
+                     (data['title'], data['description'], data['category'], data['image'], datetime.now().strftime("%b %Y")))
+        conn.commit()
+    return jsonify({"success": True})
 
-# @app.route('/contact', methods=['GET', 'POST'])
-# def contact():
-#     # ... (Your previous contact logic) ...
-#     return render_template("contact.html")
+# --- API: LIKE POST ---
+@app.route('/api/like/<int:post_id>', methods=['POST'])
+def like_post(post_id):
+    with get_db() as conn:
+        conn.execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', (post_id,))
+        conn.commit()
+    return jsonify({"success": True})
 
+# --- API: SAVE CONTACT MESSAGE ---
+@app.route('/api/contact', methods=['POST'])
+def save_contact():
+    data = request.json
+    try:
+        with get_db() as conn:
+            conn.execute('INSERT INTO contacts (name, email, message, date) VALUES (?, ?, ?, ?)',
+                         (data['name'], data['email'], data['message'], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        print("Error saving contact:", e)
+        return jsonify({"success": False}), 500
+
+# --- API: AI CHAT ---
+@app.route('/api/chat', methods=['POST'])
+def ai_chat():
+    if not GEMINI_API_KEY:
+        return jsonify({"response": "I need a Gemini API Key to think! Tell Deepmani to add it."})
+    
+    data = request.json
+    user_msg = data.get('message', '')
+    
+    # System Persona
+    system_prompt = """You are the AI Avatar of Deepmani Mishra. 
+    Deepmani is a Student at IIT Madras (BS in Data Science) and Co-Founder of PRAMAANIK.
+    He loves Python, AI, and Entrepreneurship.
+    Keep answers short, professional, and friendly."""
+    
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        chat = model.start_chat(history=[])
+        response = chat.send_message(f"{system_prompt}\nUser Question: {user_msg}")
+        return jsonify({"response": response.text})
+    except Exception as e:
+        print("Gemini Error:", e)
+        return jsonify({"response": "My brain is tired. Please try again later."})
+
+# --- SEO ROUTES ---
 @app.route('/robots.txt')
 def robots():
     return app.send_static_file('robots.txt')
-
-@app.route('/sitemap.xml')
-def sitemap():
-    pages = []
-    # UPDATE THIS URL to your actual domain if different
-    base_url = 'https://deepmanimishra.onrender.com'
-
-    for rule in app.url_map.iter_rules():
-        if "GET" in rule.methods and not rule.arguments:
-            # We filter out static files to keep sitemap clean
-            if "/static/" not in rule.rule:
-                pages.append(f"{base_url}{rule.rule}")
-
-    sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>'
-    sitemap_xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-    for page in pages:
-        sitemap_xml += f'<url><loc>{page}</loc></url>'
-    sitemap_xml += '</urlset>'
-
-    return sitemap_xml, 200, {'Content-Type': 'application/xml'}
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -4,25 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deepmani Mishra | Data Science & Innovation</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 20s linear infinite; }
+    </style>
 </head>
 <body class="bg-black text-white font-sans selection:bg-cyan-500 selection:text-black overflow-x-hidden">
 
     <div id="canvas-container" class="fixed top-0 left-0 w-full h-full -z-10"></div>
 
     <nav class="fixed w-full top-0 z-40 flex justify-between items-center p-4 md:px-12 backdrop-blur-md bg-black/10 border-b border-white/5">
-        <div class="text-xl md:text-2xl font-bold tracking-tighter hover:text-cyan-400 transition-colors cursor-pointer font-orbitron">
+        <div class="text-xl md:text-2xl font-bold font-orbitron tracking-tighter hover:text-cyan-400 transition-colors cursor-pointer">
             DEEPMANI MISHRA<span class="text-cyan-500">.</span>
         </div>
         <div class="flex items-center gap-4">
-            <a href="mailto:contact@deepmani.com" class="px-5 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10">Get in Touch</a>
+            <button onclick="toggleContactModal()" class="px-5 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10">Get in Touch</button>
+            <button onclick="adminPost()" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full text-xs font-bold hover:scale-105 transition-transform">
+                <i data-lucide="lock" size="14"></i> Admin
+            </button>
         </div>
     </nav>
 
@@ -49,19 +54,18 @@
                 </div>
 
                 <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
-                    <a href="#" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="instagram" class="text-gray-300"></i></a>
-                    <a href="#" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="linkedin" class="text-gray-300"></i></a>
-                    <a href="#" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="github" class="text-gray-300"></i></a>
-                    <a href="#" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="youtube" class="text-gray-300"></i></a>
+                    <a href="https://www.instagram.com/deepmani_mishra_/" target="_blank" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="instagram" class="text-gray-300"></i></a>
+                    <a href="https://www.linkedin.com/in/deepmani-mishra-b9a225365/" target="_blank" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="linkedin" class="text-gray-300"></i></a>
+                    <a href="https://github.com/deepmanimishra" target="_blank" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="github" class="text-gray-300"></i></a>
+                    <a href="https://www.youtube.com/channel/UCRMFS8wvXnOcopJD5KQNv0Q" target="_blank" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"><i data-lucide="youtube" class="text-gray-300"></i></a>
                 </div>
             </div>
 
             <div class="flex-none relative group">
                 <div class="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
                 <div class="relative w-48 h-48 md:w-80 md:h-80 rounded-full overflow-hidden border-2 border-white/10 bg-black">
-                    <img src="https://scontent.fdbd5-1.fna.fbcdn.net/v/t39.30808-6/583332345_1532238231159902_8868260256540002026_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1f5xHM5tN4IQ7kNvwE9KQAW&_nc_oc=Adnu7iGdpWIPtWqg4Jx4qsX6lnuqi12P2iZtzjbGXEC5nNODzmc7r2ov6pfFFX1a-9VZNSLgEIvjpK0AXEOT9Q_q&_nc_zt=23&_nc_ht=scontent.fdbd5-1.fna&_nc_gid=n0uOghvoxu4mAtlIxrWERg&oh=00_AfkO_Y8U7l7lKCQqtkr1T-kiL2hx4mDwPpAbNDFC5nzFJA&oe=6936396C" 
-                         alt="Deepmani Mishra" 
-                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                    <img src="https://scontent.fdbd5-1.fna.fbcdn.net/v/t39.30808-6/583332345_1532238231159902_8868260256540002026_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1f5xHM5tN4IQ7kNvwGahYju&_nc_oc=AdmdrVjLwoi5QOvQIfNC_2bqwpUTQclSwrozc3LLXmspTqASm5dyTp5q1VfC1ULhNOt_RsJz-6h56-jT1VbpHI_I&_nc_zt=23&_nc_ht=scontent.fdbd5-1.fna&_nc_gid=J1l1FyZOC8Xzj7i0tSSPvg&oh=00_AflmiXEinKWylfA8rGKkrReIBDDR3TbQP5D7FnUhz1CSyQ&oe=693590AC" 
+                         alt="Deepmani" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                 </div>
             </div>
         </div>
@@ -75,28 +79,84 @@
         <h2 class="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 font-orbitron">About Me</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl hover:border-cyan-500/50 transition-colors">
-                <div class="flex items-center gap-3 mb-3 text-cyan-400">
-                    <i data-lucide="code"></i>
-                    <h3 class="font-semibold text-sm uppercase tracking-wider">Academic Focus</h3>
-                </div>
-                <p class="text-gray-200 font-light leading-relaxed">Pursuing BS in Data Science & Applications at IIT Madras. Specializing in Python, ML, and Statistical Analysis.</p>
+                <div class="flex items-center gap-3 mb-3 text-cyan-400"><i data-lucide="code"></i><h3 class="font-semibold text-sm uppercase">Academic Focus</h3></div>
+                <p class="text-gray-200 font-light">Pursuing BS in Data Science & Applications at IIT Madras. Specializing in Python, ML, and Statistical Analysis.</p>
             </div>
             <div class="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl hover:border-cyan-500/50 transition-colors">
-                <div class="flex items-center gap-3 mb-3 text-cyan-400">
-                    <i data-lucide="database"></i>
-                    <h3 class="font-semibold text-sm uppercase tracking-wider">Entrepreneurship</h3>
-                </div>
-                <p class="text-gray-200 font-light leading-relaxed">Co-Founder of PRAMAANIK. Leading innovation in Cyber Security, focusing on data-driven solutions and strategic growth.</p>
+                <div class="flex items-center gap-3 mb-3 text-cyan-400"><i data-lucide="database"></i><h3 class="font-semibold text-sm uppercase">Entrepreneurship</h3></div>
+                <p class="text-gray-200 font-light">Co-Founder of PRAMAANIK. Leading innovation in Cyber Security, focusing on data-driven solutions.</p>
+            </div>
+            <div class="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl hover:border-cyan-500/50 transition-colors">
+                <div class="flex items-center gap-3 mb-3 text-cyan-400"><i data-lucide="brain"></i><h3 class="font-semibold text-sm uppercase">Vision</h3></div>
+                <p class="text-gray-200 font-light">Lead this Era with technology to solve real-world problems and build scalable technological ecosystems.</p>
+            </div>
+            <div class="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl hover:border-cyan-500/50 transition-colors">
+                <div class="flex items-center gap-3 mb-3 text-cyan-400"><i data-lucide="globe"></i><h3 class="font-semibold text-sm uppercase">Goal</h3></div>
+                <p class="text-gray-200 font-light">Make India 'Vishwa Guru' in tech, innovation, and AI. Become the world's biggest tech identity.</p>
+            </div>
+        </div>
+        
+        <div class="mt-16 overflow-hidden relative w-full">
+            <div class="flex gap-4 animate-marquee whitespace-nowrap w-max">
+                <span class="skill-tag">Python</span><span class="skill-tag">Machine Learning</span><span class="skill-tag">Data Analysis</span><span class="skill-tag">React.js</span><span class="skill-tag">Three.js</span><span class="skill-tag">Firebase</span><span class="skill-tag">Startup Management</span>
+                <span class="skill-tag">Python</span><span class="skill-tag">Machine Learning</span><span class="skill-tag">Data Analysis</span><span class="skill-tag">React.js</span><span class="skill-tag">Three.js</span><span class="skill-tag">Firebase</span><span class="skill-tag">Startup Management</span>
             </div>
         </div>
     </section>
 
-    <footer class="py-10 text-center text-gray-600 text-xs relative z-10 border-t border-white/5 bg-black/20 backdrop-blur-sm">
-        <p>© Deepmani Mishra. All rights reserved.</p>
+    <section class="py-20 px-4 md:px-12 bg-black/20 backdrop-blur-sm border-y border-white/5">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center gap-3 mb-8">
+                <i data-lucide="image" class="text-cyan-400"></i>
+                <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Recent Highlights</h2>
+            </div>
+            <div id="posts-container" class="grid grid-cols-1 md:grid-cols-3 gap-8"></div>
+        </div>
+    </section>
+
+    <footer class="py-10 text-center text-gray-500 text-sm border-t border-white/5 bg-black/40">
+        <p class="flex items-center justify-center gap-2">© Deepmani Mishra. All rights reserved.</p>
+        <p class="mt-2 flex items-center justify-center gap-2 text-xs">
+            Built with Flask & Three.js <span class="w-1 h-1 rounded-full bg-gray-600"></span> Powered by Gemini AI <i data-lucide="sparkles" class="text-purple-400 w-3 h-3"></i>
+        </p>
     </footer>
 
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div id="chat-window" class="hidden mb-4 w-80 h-96 bg-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+            <div class="p-3 bg-cyan-900/30 border-b border-white/10 font-bold text-sm flex items-center justify-between">
+                <span class="flex items-center gap-2"><i data-lucide="sparkles" size="16"></i> Deepmani AI</span>
+                <button onclick="document.getElementById('chat-window').classList.add('hidden')"><i data-lucide="x" size="16"></i></button>
+            </div>
+            <div id="chat-box" class="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-2 text-sm">
+                <div class="text-left"><span class="bg-white/10 text-gray-200 px-3 py-1.5 rounded-lg inline-block">Hello! I am Deepmani's AI. Ask me anything!</span></div>
+            </div>
+            <div class="p-3 bg-black/20 border-t border-white/10 flex gap-2">
+                <input type="text" id="ai-input" placeholder="Ask..." class="flex-1 bg-white/5 border border-white/10 rounded px-3 py-1 text-sm outline-none focus:border-cyan-500 text-white">
+                <button onclick="sendAIChat()" class="bg-cyan-600 p-2 rounded hover:bg-cyan-500 text-white"><i data-lucide="send" size="14"></i></button>
+            </div>
+        </div>
+        <button id="chat-toggle" class="w-14 h-14 bg-gradient-to-tr from-cyan-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform text-white">
+            <i data-lucide="message-square"></i>
+        </button>
+    </div>
+
+    <div id="contact-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="toggleContactModal()"></div>
+        <div class="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg p-8 shadow-2xl">
+            <button onclick="toggleContactModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i data-lucide="x"></i></button>
+            <h3 class="text-2xl font-bold mb-2 text-white">Get in Touch</h3>
+            <p class="text-gray-400 text-sm mb-6">Send me a message directly.</p>
+            <form id="contact-form" onsubmit="submitContact(event)" class="space-y-4">
+                <input type="text" id="c-name" placeholder="Name" required class="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white focus:border-cyan-500 outline-none">
+                <input type="email" id="c-email" placeholder="Email" required class="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white focus:border-cyan-500 outline-none">
+                <textarea id="c-msg" rows="4" placeholder="Message" required class="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"></textarea>
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg font-medium text-white hover:opacity-90">Send Message</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+    <style> .skill-tag { @apply inline-flex items-center px-4 py-2 bg-white/5 border border-white/10 rounded-full text-gray-300 text-sm font-medium mx-2; } </style>
 </body>
 </html>
