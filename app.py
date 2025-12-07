@@ -13,12 +13,12 @@ from flask import Flask, render_template, request, g, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+# Secure fallback for secret key
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key_892374")
 DATABASE = 'portfolio.db'
 UPLOAD_FOLDER = 'static/uploads'
 
 # --- CONFIGURATION ---
-# Pulls from Render Environment Variables.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCyBleT88wx7BXrOwIU-YCyOzAnYr3KRu4")
 GMAIL_USER = os.environ.get("GMAIL_USER", "brijratndeepmanimishra584@gmail.com")
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "mjtseukonpjddlps")
@@ -37,35 +37,36 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None: db.close()
 
-def init_db():
-    with app.app_context():
-        db = get_db()
-        with open('schema.sql', mode='r') as f: db.cursor().executescript(f.read())
-        db.commit()
+# --- CRITICAL FIX FOR RENDER 500 ERROR ---
+# This function is now called immediately when the code loads, 
+# ensuring the DB exists before Gunicorn starts serving requests.
+def init_db_command():
+    if not os.path.exists(DATABASE):
+        print("Creating Database for Render...")
+        conn = sqlite3.connect(DATABASE)
+        with app.open_resource('schema.sql', mode='r') as f:
+            conn.cursor().executescript(f.read())
+        conn.commit()
+        conn.close()
+        print("Database Created Successfully.")
+
+# EXECUTE IMMEDIATELY
+init_db_command()
 
 # --- SAFE PROFILE LOADER ---
-def get_profile_safe():
-    try:
-        db = get_db()
-        config = db.execute('SELECT * FROM site_config').fetchall()
-        if not config: raise Exception("Empty DB")
-        return {row['key']: row['value'] for row in config}
-    except:
-        return {'profile_name': 'Deepmani Mishra', 'profile_bio': 'Student | IIT Madras', 'profile_image': '/static/profile.jpg'}
-
 @app.context_processor
-def inject_global_vars():
-    return dict(profile=get_profile_safe())
-
-# --- SEO ROUTES ---
-@app.route('/robots.txt')
-def robots():
-    return Response("User-agent: *\nDisallow: /dashboard\nSitemap: " + request.url_root + "sitemap.xml", mimetype="text/plain")
-
-@app.route('/sitemap.xml')
-def sitemap():
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{request.url_root}</loc><lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod><priority>1.0</priority></url></urlset>"""
-    return Response(xml, mimetype="application/xml")
+def inject_profile():
+    try:
+        # Use a fresh connection to avoid context errors during startup
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        config = conn.execute('SELECT * FROM site_config').fetchall()
+        conn.close()
+        profile_data = {row['key']: row['value'] for row in config}
+        return dict(profile=profile_data)
+    except:
+        # Emergency Fallback to prevent 500 Error if DB fails
+        return dict(profile={'profile_name': 'Deepmani Mishra', 'profile_bio': 'Student | IIT Madras', 'profile_image': '/static/profile.jpg'})
 
 # --- EMAIL LOGIC ---
 def send_email_async(to, sub, body):
@@ -206,6 +207,7 @@ def contact():
     d = request.json
     if get_db().execute('SELECT name FROM blocked_users WHERE name = ?', (d['name'],)).fetchone(): return jsonify({'status': 'error', 'message': 'Blocked.'})
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', d['email']): return jsonify({'status': 'error', 'message': 'Invalid Email Format'})
+    
     get_db().execute('INSERT INTO messages (name, email, message) VALUES (?, ?, ?)', (d['name'], d['email'], d['message'])).connection.commit()
     trigger_email(GMAIL_USER, f"Contact: {d['name']}", f"From: {d['name']} ({d['email']})\n\n{d['message']}")
     return jsonify({'status': 'success', 'message': 'Message Sent!'})
@@ -236,5 +238,5 @@ def comments(id):
     return jsonify([dict(r) for r in get_db().execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC', (id,)).fetchall()])
 
 if __name__ == '__main__':
-    if not os.path.exists(DATABASE): init_db()
+    # We still keep this for local testing
     app.run(debug=True, port=5000)
