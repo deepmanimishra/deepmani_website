@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
-.env
-.env.*
 instance/
-site.db
-*.sqlite3
+.pytest_cache/
+.env
+portfolio.db
+static/uploads/*
+!static/uploads/.gitkeep

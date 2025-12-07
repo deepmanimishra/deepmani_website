@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- SEO METADATA -->
+    <title>{{ profile.profile_name }} | Portfolio</title>
+    <meta name="description" content="Official Portfolio of {{ profile.profile_name }} - IIT Madras Student & PRAMAANIK Founder.">
+    <meta name="keywords" content="Deepmani Mishra, IIT Madras, Data Science, Portfolio, Python">
+    <meta property="og:title" content="{{ profile.profile_name }} Portfolio">
+    <meta property="og:description" content="Explore my journey, research, and projects.">
+    <meta property="og:image" content="{{ url_for('static', filename='profile.jpg') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpeg">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={theme:{extend:{colors:{cyan:{400:'#22d3ee',500:'#06b6d4',600:'#0891b2'},purple:{400:'#c084fc',500:'#a855f7'}},fontFamily:{orbitron:['Orbitron','sans'],sans:['Inter','sans']}}}}</script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        #toast-container{position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px}
+        .toast{background:rgba(10,10,20,0.95);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);padding:16px 24px;border-radius:12px;color:white;display:flex;align-items:center;gap:12px;transform:translateX(120%);transition:all 0.4s ease;opacity:0}
+        .toast.show{transform:translateX(0);opacity:1}
+        .toast.success{border-left:4px solid #22d3ee} .toast.error{border-left:4px solid #f87171}
+        .loader{width:16px;height:16px;border:2px solid #FFF;border-bottom-color:transparent;border-radius:50%;display:inline-block;animation:r 1s linear infinite} @keyframes r{to{transform:rotate(360deg)}}
+        .perspective-1000{perspective:1000px}
+        .typing-dot{width:4px;height:4px;background:white;border-radius:50%;animation:typing 1.4s infinite ease-in-out both}
+        .typing-dot:nth-child(1){animation-delay:-0.32s} .typing-dot:nth-child(2){animation-delay:-0.16s}
+        @keyframes typing{0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)}}
+        .scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-black text-white font-sans overflow-x-hidden antialiased">
+    <div id="three-container" class="fixed top-0 left-0 w-full h-full -z-10"></div>
+    <div id="toast-container"></div>
+    {% block content %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-screen pt-24 px-4 md:px-12 max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-4">
+            <a href="/" class="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all text-white"><i data-lucide="arrow-left"></i></a>
+            <h1 class="text-3xl font-bold text-white">Dashboard</h1>
+        </div>
+        <a href="/api/admin/logout" class="px-4 py-2 bg-red-600 rounded-lg text-white text-sm hover:bg-red-500 transition-colors">Logout</a>
+    </div>
+
+    <div class="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+        <button onclick="switchTab('posts')" class="tab-btn px-4 py-2 bg-cyan-600 text-white rounded-lg hover:opacity-80 transition-all whitespace-nowrap">Highlights</button>
+        <button onclick="switchTab('journey')" class="tab-btn px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all whitespace-nowrap">Journey</button>
+        <button onclick="switchTab('documents')" class="tab-btn px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all whitespace-nowrap">Documents</button>
+        <button onclick="switchTab('messages')" class="tab-btn px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all whitespace-nowrap">Messages</button>
+        <button onclick="switchTab('followers')" class="tab-btn px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all whitespace-nowrap">Followers</button>
+    </div>
+
+    <!-- POSTS -->
+    <div id="tab-posts" class="tab-content">
+        <div class="bg-gray-900 p-6 rounded-2xl mb-8 border border-white/10"><h3 class="text-xl font-bold mb-4 text-white">Add Highlight</h3><form onsubmit="submitPostWithCrop(event)" class="space-y-4"><input type="text" id="post-title" placeholder="Title" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" required><input type="text" id="post-category" placeholder="Category" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"><input type="file" id="image-input" accept="image/*" class="w-full bg-black/50 border border-white/10 rounded-lg p-3"><div id="cropper-container" class="hidden w-full h-64 bg-black"><img id="crop-image" src="" class="max-h-full mx-auto"></div><textarea id="post-desc" placeholder="Description" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"></textarea><button type="submit" class="bg-cyan-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-cyan-500 transition-colors">Publish</button></form></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">{% for post in posts %}<div class="bg-white/5 p-4 rounded-xl flex justify-between hover:bg-white/10 transition-colors"><span>{{ post.title }}</span><button onclick="deletePost({{ post.id }})" class="text-red-400 hover:text-red-300">Delete</button></div>{% endfor %}</div>
+    </div>
+
+    <div id="tab-journey" class="tab-content hidden"><div class="bg-gray-900 p-6 rounded-2xl mb-8 border border-white/10"><form onsubmit="addJourney(event)" class="space-y-4"><input type="text" id="j-year" placeholder="Year" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"><input type="text" id="j-title" placeholder="Title" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"><input type="text" id="j-desc" placeholder="Desc" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"><button type="submit" class="bg-cyan-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-cyan-500 transition-colors">Add</button></form></div>{% for item in journey %}<div class="bg-white/5 p-4 rounded-xl flex justify-between mt-2 hover:bg-white/10 transition-colors"><span>{{ item.title }}</span><button onclick="deleteJourney({{ item.id }})" class="text-red-400 hover:text-red-300">Delete</button></div>{% endfor %}</div>
+
+    <div id="tab-documents" class="tab-content hidden"><div class="bg-gray-900 p-6 rounded-2xl mb-8 border border-white/10"><form onsubmit="uploadDocument(event)" class="space-y-4"><input type="text" id="doc-title" placeholder="Title" class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" required><input type="file" id="doc-file" accept=".pdf" class="w-full bg-black/50 border border-white/10 rounded-lg p-3" required><button type="submit" class="bg-purple-600 px-6 py-2 rounded-lg text-white font-bold hover:bg-purple-500 transition-colors">Upload PDF</button></form></div>{% for doc in documents %}<div class="bg-white/5 p-4 rounded-xl flex justify-between mt-2 hover:bg-white/10 transition-colors"><span>{{ doc.title }}</span><button onclick="deleteDocument({{ doc.id }})" class="text-red-400 hover:text-red-300">Delete</button></div>{% endfor %}</div>
+    
+    <div id="tab-messages" class="tab-content hidden">
+        {% for msg in messages %}
+        <div class="bg-white/5 p-4 rounded-lg mb-2 border border-white/10 hover:border-white/20 transition-colors">
+            <div class="flex justify-between"><span class="text-cyan-400 font-bold">{{ msg.name }} <span class="text-gray-500 text-xs">({{ msg.email }})</span></span><span class="text-xs text-gray-500">{{ msg.created_at }}</span></div>
+            <div class="text-white mt-1 mb-2">{{ msg.message }}</div>
+            <div class="flex gap-2">
+                <button onclick="replyToUser('{{ msg.email }}', '{{ msg.name }}')" class="text-xs bg-green-600 px-3 py-1 rounded text-white hover:bg-green-500 transition-colors">Reply</button>
+                <button onclick="blockUser('{{ msg.name }}')" class="text-xs bg-red-600 px-3 py-1 rounded text-white hover:bg-red-500 transition-colors">Block</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- FOLLOWERS TAB -->
+    <div id="tab-followers" class="tab-content hidden">
+        <h3 class="text-xl font-bold text-white mb-4">Total Followers: {{ followers|length }}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for f in followers %}
+            <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex justify-between items-center hover:bg-white/10 transition-colors">
+                <div>
+                    <div class="font-bold text-white">{{ f.name }}</div>
+                    <div class="text-xs text-gray-400">{{ f.email }}</div>
+                </div>
+                <div class="text-xs text-gray-500">{{ f.followed_at[:10] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<script>
+    let cropper;
+    document.getElementById('image-input').addEventListener('change', e => {
+        if(e.target.files.length){
+            document.getElementById('cropper-container').classList.remove('hidden');
+            document.getElementById('crop-image').src = URL.createObjectURL(e.target.files[0]);
+            if(cropper) cropper.destroy();
+            cropper = new Cropper(document.getElementById('crop-image'), { aspectRatio: 1 });
+        }
+    });
+    function blockUser(name) { if(confirm('Block '+name+'?')) fetch('/api/admin/block', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})}).then(()=>alert('Blocked!')); }
+    function replyToUser(email, name) {
+        let msg = prompt(`Reply to ${name}:`);
+        if(msg) fetch('/api/admin/reply', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, subject:'Reply from Deepmani', message:msg})}).then(()=>alert('Sent!'));
+    }
+</script>
+{% endblock %}
