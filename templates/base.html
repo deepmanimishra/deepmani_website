@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- SEO METADATA -->
     <title>{{ profile.profile_name }} | Portfolio</title>
-    <meta name="description" content="Official Portfolio of {{ profile.profile_name }} - IIT Madras Student & PRAMAANIK Founder.">
-    <meta name="keywords" content="Deepmani Mishra, IIT Madras, Data Science, Portfolio, Python">
-    <meta property="og:title" content="{{ profile.profile_name }} Portfolio">
-    <meta property="og:description" content="Explore my journey, research, and projects.">
-    <meta property="og:image" content="{{ url_for('static', filename='profile.jpg') }}">
+    <meta name="description" content="Portfolio of {{ profile.profile_name }} - IIT Madras Student & PRAMAANIK Founder.">
     <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpeg">
-    
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+    { "@context": "https://schema.org", "@type": "Person", "name": "{{ profile.profile_name }}", "url": "https://deepmanimishra.com", "sameAs": ["https://github.com/deepmanimishra"] }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{colors:{cyan:{400:'#22d3ee',500:'#06b6d4',600:'#0891b2'},purple:{400:'#c084fc',500:'#a855f7'}},fontFamily:{orbitron:['Orbitron','sans'],sans:['Inter','sans']}}}}</script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">

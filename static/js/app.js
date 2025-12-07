@@ -97,7 +97,8 @@ function submitFollow(e) {
 }
 
 function submitContact(e) {
-    e.preventDefault(); const btn=document.getElementById('contact-submit-btn'); const txt=btn.innerHTML; btn.innerHTML='<span class="loader"></span> Sending...'; btn.disabled=true;
+    e.preventDefault(); const btn=document.getElementById('contact-submit-btn'); const txt=btn.innerHTML; btn.innerHTML='<span class="loader"></span>'; btn.disabled=true;
+    // Fast send feedback
     setTimeout(() => { showToast('Message Sent!', 'success'); closeModal('contactModal'); e.target.reset(); btn.innerHTML=txt; btn.disabled=false; }, 500);
     fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:e.target.name.value, email:e.target.email.value, message:e.target.message.value})});
 }
@@ -123,6 +124,8 @@ function sendChatMessage() {
     fetch('/api/gemini', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:t, user: user})}).then(r=>r.json()).then(d=>{ m.removeChild(typing); m.innerHTML+=`<div class="flex justify-start mb-2"><div class="bg-white/10 p-2 rounded text-sm text-gray-200">${d.response}</div></div>`; m.scrollTop=m.scrollHeight; });
 }
 function toggleChat(){ document.getElementById('chat-window').classList.toggle('hidden'); }
+
+// UPDATED: "Drafting..." Animation
 function generateConnectMessage() { 
     const i=document.getElementById('ai-connect-intent').value; if(!i)return; 
     const btn = document.getElementById('ai-connect-btn');
