@@ -1,4 +1,4 @@
 User-agent: *
 Disallow:
 
-Sitemap: https://deepmanimishra.onrender.com/sitemap.xml
+Sitemap: https://deepmanimishra.com/sitemap.xml

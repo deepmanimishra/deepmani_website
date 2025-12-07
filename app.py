@@ -13,17 +13,17 @@ from flask import Flask, render_template, request, g, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-# Securely get secret key
-app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+# Secure fallback for secret key to prevent session errors on restart
+app.secret_key = os.environ.get("SECRET_KEY", "dev_key_892374")
 DATABASE = 'portfolio.db'
 UPLOAD_FOLDER = 'static/uploads'
 
-# --- SECURE CONFIGURATION ---
-# These pull from Render Environment Variables. 
-# If missing, the app will use Simulation Mode automatically.
-GEMINI_API_KEY = os.environ.get("AIzaSyCyBleT88wx7BXrOwIU-YCyOzAnYr3KRu4")
+# --- CONFIGURATION (HYBRID) ---
+# 1. Tries to get keys from Render Environment Variables (Best for Deployment)
+# 2. Falls back to the keys you provided (Best for Local Testing)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCyBleT88wx7BXrOwIU-YCyOzAnYr3KRu4")
 GMAIL_USER = os.environ.get("GMAIL_USER", "brijratndeepmanimishra584@gmail.com")
-GMAIL_APP_PASSWORD = os.environ.get("mjtseukonpjddlps") 
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "mjtseukonpjddlps")
 
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -45,25 +45,26 @@ def init_db():
         with open('schema.sql', mode='r') as f: db.cursor().executescript(f.read())
         db.commit()
 
-@app.context_processor
-def inject_profile():
+# --- SAFE DATA LOADERS (Prevents 500 Errors) ---
+def get_profile_safe():
     try:
         db = get_db()
         config = db.execute('SELECT * FROM site_config').fetchall()
-        return dict(profile={row['key']: row['value'] for row in config})
-    except: return dict(profile={'profile_name': 'Deepmani', 'profile_bio': 'Student', 'profile_image': '/static/profile.jpg'})
+        if not config: raise Exception("Empty DB")
+        return {row['key']: row['value'] for row in config}
+    except:
+        # Emergency Fallback Data
+        return {
+            'profile_name': 'Deepmani Mishra', 
+            'profile_bio': 'Student | IIT Madras', 
+            'profile_image': '/static/profile.jpg'
+        }
 
-# --- SEO ROUTES ---
-@app.route('/robots.txt')
-def robots():
-    return Response("User-agent: *\nDisallow: /dashboard\nSitemap: " + request.url_root + "sitemap.xml", mimetype="text/plain")
+@app.context_processor
+def inject_global_vars():
+    return dict(profile=get_profile_safe())
 
-@app.route('/sitemap.xml')
-def sitemap():
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{request.url_root}</loc><lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod><priority>1.0</priority></url></urlset>"""
-    return Response(xml, mimetype="application/xml")
-
-# --- EMAIL LOGIC ---
+# --- ASYNC EMAIL ---
 def send_email_async(to, sub, body):
     if not GMAIL_APP_PASSWORD: return
     msg = MIMEMultipart()
@@ -73,7 +74,8 @@ def send_email_async(to, sub, body):
         s = smtplib.SMTP('smtp.gmail.com', 587); s.starttls(); s.login(GMAIL_USER, GMAIL_APP_PASSWORD); s.send_message(msg); s.quit()
     except Exception as e: print(f"Email Error: {e}")
 
-def trigger_email(to, sub, body): threading.Thread(target=send_email_async, args=(to, sub, body)).start()
+def trigger_email(to, sub, body): 
+    threading.Thread(target=send_email_async, args=(to, sub, body)).start()
 
 def save_base64_image(data_url):
     try:
@@ -85,10 +87,12 @@ def save_base64_image(data_url):
         return f"/static/uploads/{filename}"
     except: return None
 
+# --- ROUTES ---
 @app.route('/')
 def index():
     db = get_db()
     return render_template('index.html', 
+        profile=get_profile_safe(),
         posts=db.execute('SELECT * FROM posts ORDER BY id DESC').fetchall(),
         journey=db.execute('SELECT * FROM journey ORDER BY year DESC').fetchall(),
         documents=db.execute('SELECT * FROM documents ORDER BY uploaded_at DESC').fetchall(),
@@ -99,29 +103,31 @@ def dashboard():
     if not session.get('admin'): return redirect(url_for('index'))
     db = get_db()
     return render_template('dashboard.html', 
+        profile=get_profile_safe(),
         posts=db.execute('SELECT * FROM posts ORDER BY id DESC').fetchall(),
         journey=db.execute('SELECT * FROM journey ORDER BY year DESC').fetchall(),
         documents=db.execute('SELECT * FROM documents ORDER BY uploaded_at DESC').fetchall(),
         messages=db.execute('SELECT * FROM messages ORDER BY created_at DESC').fetchall(),
         followers=db.execute('SELECT * FROM followers ORDER BY followed_at DESC').fetchall())
 
-# --- HYBRID AI CHAT (Safe & Reliable) ---
+# --- HYBRID AI CHAT (The Fix) ---
 @app.route('/api/gemini', methods=['POST'])
 def gemini_chat():
     data = request.json
     user = data.get('user', 'Guest')
     prompt = data.get('prompt')
     
-    # 1. Try Real AI (Only if Key exists)
+    # SYSTEM 1: Try Real AI
     if GEMINI_API_KEY:
         try:
             sys = f"You are Deepmani Mishra. User: {user}. Keep answers short."
             res = requests.post(GEMINI_API_URL, json={"contents": [{"parts": [{"text": prompt}]}], "systemInstruction": {"parts": [{"text": sys}]}}, headers={'Content-Type': 'application/json'})
             if res.status_code == 200:
                 return jsonify({'response': res.json()['candidates'][0]['content']['parts'][0]['text']})
-        except: pass
+        except:
+            pass # Fail silently and use fallback
 
-    # 2. Simulation Mode (Fallback - 100% Reliability)
+    # SYSTEM 2: Simulation Mode (Fallback)
     msg = prompt.lower()
     if any(x in msg for x in ['hi', 'hello']): reply = f"Hello {user}! I am Deepmani's AI. How can I help?"
     elif any(x in msg for x in ['work', 'project']): reply = "I founded PRAMAANIK to solve cyber security challenges."
@@ -129,7 +135,7 @@ def gemini_chat():
     elif "draft" in msg: reply = f"Hi Deepmani,\n\nI'd like to discuss a project.\n\nBest,\n{user}"
     else: reply = "That's interesting! Ask me about my projects or research."
     
-    time.sleep(1)
+    time.sleep(1) # Fake thinking time for realism
     return jsonify({'response': reply})
 
 @app.route('/api/admin/login', methods=['POST'])
