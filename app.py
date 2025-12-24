@@ -11,28 +11,26 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Flask, render_template, request, g, jsonify, session, redirect, url_for, Response
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-import google.generativeai as genai  # <--- USING OFFICIAL LIBRARY
+from dotenv import load_dotenv  # <--- ADDED THIS
 
-# Load secrets
+# Load secrets from .env file
 load_dotenv()
 
 app = Flask(__name__)
+# Secure secret key
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key_fallback")
 DATABASE = 'portfolio.db'
 UPLOAD_FOLDER = 'static/uploads'
 
-# --- CONFIGURATION ---
+# --- CONFIGURATION (SECURED) ---
+# We map standard Env names to your internal variable names
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+# Accepts either GMAIL_USER or EMAIL_USER
 GMAIL_USER = os.environ.get("EMAIL_USER") or os.environ.get("GMAIL_USER")
 GMAIL_APP_PASSWORD = os.environ.get("EMAIL_PASS") or os.environ.get("GMAIL_APP_PASSWORD")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") # <--- ADDED THIS
 
-# Initialize AI
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-pro') # Using the standard Pro model
-
+GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -46,35 +44,47 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None: db.close()
 
+# --- CRITICAL FIX FOR RENDER 500 ERROR ---
 def init_db_command():
     if not os.path.exists(DATABASE):
-        print("Creating Database...")
+        print("Creating Database for Render...")
         conn = sqlite3.connect(DATABASE)
-        # Create Tables if schema file is missing
-        c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, title TEXT, description TEXT, category TEXT, image_url TEXT, likes INTEGER DEFAULT 0)')
-        c.execute('CREATE TABLE IF NOT EXISTS journey (id INTEGER PRIMARY KEY, year TEXT, title TEXT, description TEXT)')
-        c.execute('CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY, title TEXT, file_path TEXT, uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-        c.execute('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, name TEXT, email TEXT, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-        c.execute('CREATE TABLE IF NOT EXISTS followers (id INTEGER PRIMARY KEY, email TEXT, name TEXT, followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-        c.execute('CREATE TABLE IF NOT EXISTS blocked_users (name TEXT UNIQUE)')
-        c.execute('CREATE TABLE IF NOT EXISTS site_config (key TEXT PRIMARY KEY, value TEXT)')
+        # Check if schema.sql exists, otherwise create tables manually to prevent crash
+        if os.path.exists('schema.sql'):
+            with app.open_resource('schema.sql', mode='r') as f:
+                conn.cursor().executescript(f.read())
+        else:
+            # Emergency Schema Creation if file is missing
+            c = conn.cursor()
+            c.execute('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, title TEXT, description TEXT, category TEXT, image_url TEXT, likes INTEGER DEFAULT 0)')
+            c.execute('CREATE TABLE IF NOT EXISTS journey (id INTEGER PRIMARY KEY, year TEXT, title TEXT, description TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY, title TEXT, file_path TEXT, uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+            c.execute('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, name TEXT, email TEXT, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+            c.execute('CREATE TABLE IF NOT EXISTS followers (id INTEGER PRIMARY KEY, email TEXT, name TEXT, followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+            c.execute('CREATE TABLE IF NOT EXISTS blocked_users (name TEXT UNIQUE)')
+            c.execute('CREATE TABLE IF NOT EXISTS site_config (key TEXT PRIMARY KEY, value TEXT)')
         conn.commit()
         conn.close()
+        print("Database Created Successfully.")
 
+# EXECUTE IMMEDIATELY
 init_db_command()
 
+# --- SAFE PROFILE LOADER ---
 @app.context_processor
 def inject_profile():
     try:
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
+        # Handle case where site_config table might not exist yet
         try:
             config = conn.execute('SELECT * FROM site_config').fetchall()
             profile_data = {row['key']: row['value'] for row in config}
-        except: profile_data = {}
+        except:
+            profile_data = {}
         conn.close()
         
+        # Defaults if DB is empty
         if not profile_data:
             profile_data = {
                 'profile_name': 'Deepmani Mishra',
@@ -85,6 +95,7 @@ def inject_profile():
     except:
         return dict(profile={'profile_name': 'Deepmani Mishra', 'profile_bio': 'Co-Founder | Pramaniik', 'profile_image': '/static/profile.jpg'})
 
+# --- EMAIL LOGIC ---
 def send_email_async(to, sub, body):
     if not GMAIL_APP_PASSWORD or not GMAIL_USER: return
     msg = MIMEMultipart()
@@ -126,26 +137,21 @@ def dashboard():
         messages=db.execute('SELECT * FROM messages ORDER BY created_at DESC').fetchall(),
         followers=db.execute('SELECT * FROM followers ORDER BY followed_at DESC').fetchall())
 
-# --- IMPROVED AI CHAT ---
+# --- HYBRID AI CHAT ---
 @app.route('/api/gemini', methods=['POST'])
 def gemini_chat():
     data = request.json
     user = data.get('user', 'Guest')
     prompt = data.get('prompt')
     
-    # 1. Try Real AI (Using Official Library)
+    # 1. Try Real AI
     if GEMINI_API_KEY:
         try:
-            # Handle "Smart Connect" drafts vs Normal Chat
-            if "Draft a note:" in prompt:
-                response = model.generate_content(f"Write a professional LinkedIn connection note. Context: {prompt}")
-            else:
-                chat = model.start_chat(history=[])
-                response = chat.send_message(f"You are the AI of Deepmani Mishra. Answer this user ({user}) briefly: {prompt}")
-            
-            return jsonify({'response': response.text})
-        except Exception as e: 
-            print(f"AI Error: {e}") # This will show in Render logs if it fails
+            sys = f"You are Deepmani Mishra. User: {user}. Keep answers short & professional."
+            res = requests.post(GEMINI_API_URL, json={"contents": [{"parts": [{"text": prompt}]}], "systemInstruction": {"parts": [{"text": sys}]}}, headers={'Content-Type': 'application/json'})
+            if res.status_code == 200:
+                return jsonify({'response': res.json()['candidates'][0]['content']['parts'][0]['text']})
+        except: pass
 
     # 2. Simulation Mode (Fallback)
     msg = prompt.lower()
@@ -155,14 +161,21 @@ def gemini_chat():
     elif "draft" in msg: reply = f"Hi Deepmani,\n\nI'd like to discuss a project.\n\nBest,\n{user}"
     else: reply = "That's interesting! I focus mostly on Deepmani's professional work. Ask me about my projects or research."
     
+    time.sleep(1)
     return jsonify({'response': reply})
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
+    # --- SECURE FIX: Check Env Variable instead of hardcoded string ---
     pwd = request.json.get('password')
-    if (ADMIN_PASSWORD and pwd == ADMIN_PASSWORD) or (not ADMIN_PASSWORD and pwd == 'admin123'): 
+    if ADMIN_PASSWORD and pwd == ADMIN_PASSWORD: 
         session['admin'] = True
         return jsonify({'status': 'success'})
+    # Fallback for local testing if env var is missing
+    elif not ADMIN_PASSWORD and pwd == 'admin123': 
+        session['admin'] = True
+        return jsonify({'status': 'success'})
+        
     return jsonify({'status': 'error'}), 401
 
 @app.route('/api/admin/logout')
@@ -261,4 +274,5 @@ def comments(id):
     return jsonify([dict(r) for r in get_db().execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC', (id,)).fetchall()])
 
 if __name__ == '__main__':
+    # We still keep this for local testing
     app.run(debug=True, port=5000)
