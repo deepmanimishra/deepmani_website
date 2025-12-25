@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{{ profile.profile_name }} | Student & Entrepreneur</title>
     <meta name="description" content="Portfolio of {{ profile.profile_name }} - IIT Madras Student & PRAMANIIK Co-Founder.">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpeg">
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='uploads/favicon.jpg') }}">
+    <!-- <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpeg"> -->
     <!-- JSON-LD -->
     <script type="application/ld+json">
     { "@context": "https://schema.org", "@type": "Person", "name": "{{ profile.profile_name }}", "url": "https://deepmanimishra.com", "sameAs": ["https://github.com/deepmanimishra"] }
