@@ -87,13 +87,13 @@ def inject_profile():
         # Defaults if DB is empty
         if not profile_data:
             profile_data = {
-                'profile_name': 'Deepmani Mishra',
+                'profile_name': 'Deepmani Mishraa',
                 'profile_bio': 'Co-Founder | Pramaniik',
                 'profile_image': 'https://scontent.fdbd5-1.fna.fbcdn.net/v/t39.30808-6/583332345_1532238231159902_8868260256540002026_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=1f5xHM5tN4IQ7kNvwGahYju&_nc_oc=AdmdrVjLwoi5QOvQIfNC_2bqwpUTQclSwrozc3LLXmspTqASm5dyTp5q1VfC1ULhNOt_RsJz-6h56-jT1VbpHI_I&_nc_zt=23&_nc_ht=scontent.fdbd5-1.fna&_nc_gid=J1l1FyZOC8Xzj7i0tSSPvg&oh=00_AflmiXEinKWylfA8rGKkrReIBDDR3TbQP5D7FnUhz1CSyQ&oe=693590AC'
             }
         return dict(profile=profile_data)
     except:
-        return dict(profile={'profile_name': 'Deepmani Mishra', 'profile_bio': 'Co-Founder | Pramaniik', 'profile_image': '/static/profile.jpg'})
+        return dict(profile={'profile_name': 'Deepmani Mishraa', 'profile_bio': 'Co-Founder | Pramaniik', 'profile_image': '/static/profile.jpg'})
 
 # --- EMAIL LOGIC ---
 def send_email_async(to, sub, body):
@@ -147,7 +147,7 @@ def gemini_chat():
     # 1. Try Real AI
     if GEMINI_API_KEY:
         try:
-            sys = f"You are Deepmani Mishra. User: {user}. Keep answers short & professional."
+            sys = f"You are Deepmani Mishraa. User: {user}. Keep answers short & professional."
             res = requests.post(GEMINI_API_URL, json={"contents": [{"parts": [{"text": prompt}]}], "systemInstruction": {"parts": [{"text": sys}]}}, headers={'Content-Type': 'application/json'})
             if res.status_code == 200:
                 return jsonify({'response': res.json()['candidates'][0]['content']['parts'][0]['text']})
