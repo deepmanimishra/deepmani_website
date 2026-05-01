@@ -17,5 +17,5 @@ CREATE TABLE followers (email TEXT PRIMARY KEY, name TEXT, followed_at TIMESTAMP
 CREATE TABLE site_config (key TEXT PRIMARY KEY, value TEXT);
 
 -- Initial Data
-INSERT INTO site_config VALUES ('profile_name', 'Deepmani Mishra'), ('profile_bio', 'Student | IIT Madras'), ('profile_image', '/static/profile.jpg');
+INSERT INTO site_config VALUES ('profile_name', 'Deepmani Mishraa'), ('profile_bio', 'Student | IIT Madras'), ('profile_image', '/static/profile.jpg');
 INSERT INTO posts (title, description, category, likes, image_url) VALUES ('Welcome!', 'Welcome to my 3D Portfolio.', 'Personal', 10, '');
