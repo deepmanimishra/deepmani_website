@@ -157,10 +157,13 @@ function openPostDetail(el) {
     }
 }
 function likePost() {
-    if (!visitorIdentity) {
+
+    // 1. Check identity
+    if (!visitorIdentity || !visitorIdentity.name) {
         return openModal('identityModal');
     }
 
+    // 2. API call
     fetch(`/api/posts/${currentPostId}/like`, {
         method: 'POST',
         headers: {
@@ -170,36 +173,65 @@ function likePost() {
             guest_id: visitorIdentity.name
         })
     })
-    .then(res => res.json())
+    .then(res => {
+        // handle non-JSON safely
+        if (!res.ok) {
+            throw new Error("Server error");
+        }
+        return res.json();
+    })
     .then(data => {
+        console.log("LIKE RESPONSE:", data);
+
+        // 3. Handle backend error
         if (data.error) {
             showToast(data.error, 'error');
             return;
         }
 
-        // update like count instantly
-        document.getElementById('detail-likes').innerText = data.likes;
-        // update all like counters of same post
+        // 4. Update modal likes
+        const detailLikes = document.getElementById('detail-likes');
+        if (detailLikes) {
+            detailLikes.innerText = data.likes;
+        }
+
+        // 5. Update all cards
         document.querySelectorAll(`.like-count[data-post-id="${currentPostId}"]`)
         .forEach(el => {
-         el.innerText = data.likes;
+            el.innerText = data.likes;
         });
+
+        // 6. Handle button safely
+        const likeBtn = document.getElementById('like-btn');
 
         if (data.status === 'liked') {
 
-        // store liked post locally
-        let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || "[]");
-        likedPosts.push(currentPostId);
-        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+            // prevent duplicate storage
+            let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || "[]");
+            if (!likedPosts.includes(currentPostId)) {
+                likedPosts.push(currentPostId);
+                localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+            }
 
-        // make button red
-        document.getElementById('like-btn').classList.add('text-red-500');
+            if (likeBtn) {
+                likeBtn.classList.add('text-red-500');
+            }
+
+            showToast("Liked ❤️", "success");
+
+        } 
+        else if (data.status === 'already_liked') {
+
+            if (likeBtn) {
+                likeBtn.classList.add('text-red-500');
+            }
+
+            showToast("Already liked", "error");
         }
-        if (data.status === 'already_liked') {
-        document.getElementById('like-btn').classList.add('text-red-500');
-        }
+
     })
-    .catch(() => {
+    .catch(err => {
+        console.error("LIKE ERROR:", err);
         showToast("Error liking post", "error");
     });
 }function submitComment() { if(!visitorIdentity)return openModal('identityModal'); const t=document.getElementById('comment-input').value; fetch(`/api/posts/${currentPostId}/comments`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:visitorIdentity.name, author_initial:visitorIdentity.avatarInitial, text:t})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else { document.getElementById('comment-input').value=''; openPostDetail({dataset:{id:currentPostId, title:document.getElementById('detail-title').innerText, desc:document.getElementById('detail-desc').innerText, image:document.getElementById('detail-image').src, likes:document.getElementById('detail-likes').innerText}}); } }); }

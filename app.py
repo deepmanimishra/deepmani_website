@@ -98,18 +98,11 @@ def trigger_email(to, sub, body):
 # ---------------- IMAGE ---------------- #
 
 def save_base64_image(data_url):
-    if "base64," not in data_url:
+    if not data_url or "base64," not in data_url:
         return None
 
-    data = base64.b64decode(data_url.split(",", 1)[1])
-    filename = f"img_{int(time.time())}.png"
-    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    with open(path, "wb") as f:
-        f.write(data)
-
+    # IMPORTANT: store base64 directly (no file saving)
     return data_url
-
 # ---------------- ROUTES ---------------- #
 
 @app.route('/')
