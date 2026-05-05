@@ -55,15 +55,30 @@ def close_db(exception):
 @app.context_processor
 def inject_profile():
     try:
-        conn = sqlite3.connect(DATABASE)
-        conn.row_factory = sqlite3.Row
-        # Handle case where site_config table might not exist yet
-        try:
-            config = conn.execute('SELECT * FROM site_config').fetchall()
-            profile_data = {row['key']: row['value'] for row in config}
-        except:
-            profile_data = {}
-        conn.close()
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("SELECT * FROM site_config")
+        config = cur.fetchall()
+
+        profile_data = {row['key']: row['value'] for row in config}
+
+        if not profile_data:
+            profile_data = {
+                'profile_name': 'Deepmani Mishraa',
+                'profile_bio': 'Co-Founder | Pramaniik',
+                'profile_image': '/static/profile.jpg'
+            }
+
+        return dict(profile=profile_data)
+
+    except Exception as e:
+        print("Profile Load Error:", e)
+        return dict(profile={
+            'profile_name': 'Deepmani Mishraa',
+            'profile_bio': 'Co-Founder | Pramaniik',
+            'profile_image': '/static/profile.jpg'
+        })
         
         # Defaults if DB is empty
         if not profile_data:
