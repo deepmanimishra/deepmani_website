@@ -191,46 +191,56 @@ def create_post():
 
 @app.route('/api/posts/<int:post_id>/like', methods=['POST'])
 def like_post(post_id):
-    data = request.json
-    guest_id = data.get('guest_id')
+    data = request.get_json()
 
-    if not guest_id:
-        return jsonify({'error': 'guest_id required'}), 400
+if not data:
+    return jsonify({'error': 'No JSON received'}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
+guest_id = data.get('guest_id')
 
-    try:
-        cur.execute(
-            "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
-            (post_id, guest_id)
-        )
+if not guest_id:
+    return jsonify({'error': 'guest_id required'}), 400
 
-        cur.execute(
-            "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING likes",
-            (post_id,)
-        )
+    # guest_id = data.get('guest_id')
+    
 
-        new_likes = cur.fetchone()[0]
+    # if not guest_id:
+    #     return jsonify({'error': 'guest_id required'}), 400
 
-        conn.commit()
+    # conn = get_db()
+    # cur = conn.cursor()
 
-        return jsonify({
-            'status': 'liked',
-            'likes': new_likes
-        })
+    # try:
+    #     cur.execute(
+    #         "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
+    #         (post_id, guest_id)
+    #     )
 
-    except Exception:
-        conn.rollback()
+    #     cur.execute(
+    #         "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING likes",
+    #         (post_id,)
+    #     )
 
-        # fetch existing likes
-        cur.execute("SELECT likes FROM posts WHERE id = %s", (post_id,))
-        likes = cur.fetchone()[0]
+    #     new_likes = cur.fetchone()[0]
 
-        return jsonify({
-            'status': 'already_liked',
-            'likes': likes
-        })
+    #     conn.commit()
+
+    #     return jsonify({
+    #         'status': 'liked',
+    #         'likes': new_likes
+    #     })
+
+    # except Exception:
+    #     conn.rollback()
+
+    #     # fetch existing likes
+    #     cur.execute("SELECT likes FROM posts WHERE id = %s", (post_id,))
+    #     likes = cur.fetchone()[0]
+
+    #     return jsonify({
+    #         'status': 'already_liked',
+    #         'likes': likes
+    #     })
 
 # ---------------- logout ---------------- #
 
