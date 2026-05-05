@@ -64,7 +64,7 @@
                  data-id="{{ post.id }}" 
                  data-title="{{ post.title }}" 
                  data-desc="{{ post.description }}" 
-                 data-image="{{ post.image_url }}" 
+                 data-image="{{ post.image_url | safe }}" 
                  data-likes="{{ post.likes }}">
                 <div class="aspect-square w-full bg-gray-900 relative overflow-hidden">
                     <img src="{{ post.image_url }}" 

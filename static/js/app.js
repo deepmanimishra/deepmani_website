@@ -144,21 +144,39 @@ function generateConnectMessage() {
 function copyToClipboard() { navigator.clipboard.writeText(document.getElementById('ai-connect-text').innerText); showToast('Copied!'); }
 
 function openPostDetail(el) {
-    currentPostId = el.dataset.id; document.getElementById('detail-title').innerText=el.dataset.title; document.getElementById('detail-desc').innerText=el.dataset.desc; const img = el.dataset.image;
+    currentPostId = el.dataset.id;
+
+    document.getElementById('detail-title').innerText = el.dataset.title;
+    document.getElementById('detail-desc').innerText = el.dataset.desc;
+
+    const img = el.dataset.image;
     const i = document.getElementById('detail-image');
+
+    console.log("MODAL IMAGE:", img);
 
     if (img && img.startsWith('data:image')) {
         i.src = img;
         i.style.display = 'block';
-    } else if (img) {
+
+    } else if (img && img.startsWith('http')) {
         i.src = img;
         i.style.display = 'block';
+
+    } else if (img && img.startsWith('/static')) {
+        i.src = img;
+        i.style.display = 'block';
+
     } else {
         i.src = '/static/profile.jpg';
-    } const detailLikes = document.getElementById('detail-likes');
+        i.style.display = 'block';
+    }
+
+    const detailLikes = document.getElementById('detail-likes');
     if (detailLikes) {
         detailLikes.innerText = el.dataset.likes;
     }
+}
+
     fetch(`/api/posts/${currentPostId}/comments`).then(r=>r.json()).then(c=>{ const l=document.getElementById('comments-list'); l.innerHTML=''; c.forEach(x=>{ l.innerHTML+=`<div class="flex gap-2 mb-2"><div class="font-bold text-cyan-400">${x.author_initial}:</div><div class="text-gray-300">${x.content}</div></div>`; }); });
     openModal('postDetailModal'); 
     // check if already liked
