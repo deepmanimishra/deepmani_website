@@ -144,16 +144,33 @@ function generateConnectMessage() {
 function copyToClipboard() { navigator.clipboard.writeText(document.getElementById('ai-connect-text').innerText); showToast('Copied!'); }
 
 function openPostDetail(el) {
-    currentPostId = el.dataset.id; document.getElementById('detail-title').innerText=el.dataset.title; document.getElementById('detail-desc').innerText=el.dataset.desc; const i=document.getElementById('detail-image'); if(el.dataset.image){i.src=el.dataset.image; i.style.display='block';}else i.style.display='none'; document.getElementById('detail-likes').innerText=el.dataset.likes;
+    currentPostId = el.dataset.id; document.getElementById('detail-title').innerText=el.dataset.title; document.getElementById('detail-desc').innerText=el.dataset.desc; const img = el.dataset.image;
+    const i = document.getElementById('detail-image');
+
+    if (img && img.startsWith('data:image')) {
+        i.src = img;
+        i.style.display = 'block';
+    } else if (img) {
+        i.src = img;
+        i.style.display = 'block';
+    } else {
+        i.src = '/static/profile.jpg';
+    } const detailLikes = document.getElementById('detail-likes');
+    if (detailLikes) {
+        detailLikes.innerText = el.dataset.likes;
+    }
     fetch(`/api/posts/${currentPostId}/comments`).then(r=>r.json()).then(c=>{ const l=document.getElementById('comments-list'); l.innerHTML=''; c.forEach(x=>{ l.innerHTML+=`<div class="flex gap-2 mb-2"><div class="font-bold text-cyan-400">${x.author_initial}:</div><div class="text-gray-300">${x.content}</div></div>`; }); });
     openModal('postDetailModal'); 
     // check if already liked
     let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || "[]");
 
-    if (likedPosts.includes(currentPostId)) {
-        document.getElementById('like-btn').classList.add('text-red-500');
-    } else {
-        document.getElementById('like-btn').classList.remove('text-red-500');
+    const likeBtn = document.getElementById('like-btn');
+    if (likeBtn) {
+        if (likedPosts.includes(currentPostId)) {
+            likeBtn.classList.add('text-red-500');
+        } else {
+            likeBtn.classList.remove('text-red-500');
+        }
     }
 }
 function likePost() {
@@ -234,4 +251,18 @@ function likePost() {
         console.error("LIKE ERROR:", err);
         showToast("Error liking post", "error");
     });
-}function submitComment() { if(!visitorIdentity)return openModal('identityModal'); const t=document.getElementById('comment-input').value; fetch(`/api/posts/${currentPostId}/comments`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:visitorIdentity.name, author_initial:visitorIdentity.avatarInitial, text:t})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else { document.getElementById('comment-input').value=''; openPostDetail({dataset:{id:currentPostId, title:document.getElementById('detail-title').innerText, desc:document.getElementById('detail-desc').innerText, image:document.getElementById('detail-image').src, likes:document.getElementById('detail-likes').innerText}}); } }); }
+}
+
+function submitComment() { if(!visitorIdentity)return openModal('identityModal'); const t=document.getElementById('comment-input').value; fetch(`/api/posts/${currentPostId}/comments`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:visitorIdentity.name, author_initial:visitorIdentity.avatarInitial, text:t})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else { document.getElementById('comment-input').value=''; fetch(`/api/posts/${currentPostId}/comments`)
+.then(r => r.json())
+.then(c => {
+    const l = document.getElementById('comments-list');
+    l.innerHTML = '';
+    c.forEach(x => {
+        l.innerHTML += `
+            <div class="flex gap-2 mb-2">
+                <div class="font-bold text-cyan-400">${x.author_initial}:</div>
+                <div class="text-gray-300">${x.content}</div>
+            </div>`;
+    });
+}); } }); }

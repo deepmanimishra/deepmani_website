@@ -67,7 +67,9 @@
                  data-image="{{ post.image_url }}" 
                  data-likes="{{ post.likes }}">
                 <div class="aspect-square w-full bg-gray-900 relative overflow-hidden">
-                    <img src="{{ post.image_url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.style.display='none'">
+                    <img src="{{ post.image_url }}" 
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        onerror="this.src='/static/profile.jpg'">
                     {% if session.get('admin') %} <button onclick="event.stopPropagation(); deletePost({{ post.id }})" class="absolute top-2 right-2 bg-red-600 p-2 rounded-full text-white z-20 hover:bg-red-500"><i data-lucide="trash-2" width="14"></i></button> {% endif %}
                 </div>
                 <div class="p-5 relative"><h3 class="text-xl font-bold text-white mb-2">{{ post.title }}</h3><p class="text-gray-400 text-sm line-clamp-2">{{ post.description }}</p><div class="flex items-center gap-2 mt-4 text-gray-500 text-xs"><i data-lucide="heart" width="14"></i><span class="like-count" data-post-id="{{ post.id }}">{{ post.likes }}</span></div>
