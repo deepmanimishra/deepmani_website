@@ -194,29 +194,43 @@ def like_post(post_id):
     data = request.json
     guest_id = data.get('guest_id')
 
+    if not guest_id:
+        return jsonify({'error': 'guest_id required'}), 400
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
-        # 1. Try inserting like
         cur.execute(
             "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
             (post_id, guest_id)
         )
 
-        # 2. Increase like count
         cur.execute(
-            "UPDATE posts SET likes = likes + 1 WHERE id = %s",
+            "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING likes",
             (post_id,)
         )
 
+        new_likes = cur.fetchone()[0]
+
         conn.commit()
 
-        return jsonify({'status': 'liked'})
+        return jsonify({
+            'status': 'liked',
+            'likes': new_likes
+        })
 
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        return jsonify({'status': 'already_liked'})
+
+        # fetch existing likes
+        cur.execute("SELECT likes FROM posts WHERE id = %s", (post_id,))
+        likes = cur.fetchone()[0]
+
+        return jsonify({
+            'status': 'already_liked',
+            'likes': likes
+        })
 
 # ---------------- logout ---------------- #
 
