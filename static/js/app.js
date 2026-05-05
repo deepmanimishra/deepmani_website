@@ -146,7 +146,15 @@ function copyToClipboard() { navigator.clipboard.writeText(document.getElementBy
 function openPostDetail(el) {
     currentPostId = el.dataset.id; document.getElementById('detail-title').innerText=el.dataset.title; document.getElementById('detail-desc').innerText=el.dataset.desc; const i=document.getElementById('detail-image'); if(el.dataset.image){i.src=el.dataset.image; i.style.display='block';}else i.style.display='none'; document.getElementById('detail-likes').innerText=el.dataset.likes;
     fetch(`/api/posts/${currentPostId}/comments`).then(r=>r.json()).then(c=>{ const l=document.getElementById('comments-list'); l.innerHTML=''; c.forEach(x=>{ l.innerHTML+=`<div class="flex gap-2 mb-2"><div class="font-bold text-cyan-400">${x.author_initial}:</div><div class="text-gray-300">${x.content}</div></div>`; }); });
-    openModal('postDetailModal');
+    openModal('postDetailModal'); 
+    // check if already liked
+    let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || "[]");
+
+    if (likedPosts.includes(currentPostId)) {
+        document.getElementById('like-btn').classList.add('text-red-500');
+    } else {
+        document.getElementById('like-btn').classList.remove('text-red-500');
+    }
 }
 function likePost() {
     if (!visitorIdentity) {
@@ -178,9 +186,17 @@ function likePost() {
         });
 
         if (data.status === 'liked') {
-            showToast("Liked ❤️", "success");
-        } else {
-            showToast("Already liked", "error");
+
+        // store liked post locally
+        let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || "[]");
+        likedPosts.push(currentPostId);
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+
+        // make button red
+        document.getElementById('like-btn').classList.add('text-red-500');
+        }
+        if (data.status === 'already_liked') {
+        document.getElementById('like-btn').classList.add('text-red-500');
         }
     })
     .catch(() => {
