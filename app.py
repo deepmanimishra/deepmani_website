@@ -137,14 +137,35 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    if not session.get('admin'): return redirect(url_for('index'))
-    db = get_db()
-    return render_template('dashboard.html', 
-        posts=db.execute('SELECT * FROM posts ORDER BY id DESC').fetchall(),
-        journey=db.execute('SELECT * FROM journey ORDER BY year DESC').fetchall(),
-        documents=db.execute('SELECT * FROM documents ORDER BY uploaded_at DESC').fetchall(),
-        messages=db.execute('SELECT * FROM messages ORDER BY created_at DESC').fetchall(),
-        followers=db.execute('SELECT * FROM followers ORDER BY followed_at DESC').fetchall())
+    if not session.get('admin'):
+        return redirect(url_for('index'))
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("SELECT * FROM posts ORDER BY id DESC")
+    posts = cur.fetchall()
+
+    cur.execute("SELECT * FROM journey ORDER BY year DESC")
+    journey = cur.fetchall()
+
+    cur.execute("SELECT * FROM documents ORDER BY uploaded_at DESC")
+    documents = cur.fetchall()
+
+    cur.execute("SELECT * FROM messages ORDER BY created_at DESC")
+    messages = cur.fetchall()
+
+    cur.execute("SELECT * FROM followers ORDER BY followed_at DESC")
+    followers = cur.fetchall()
+
+    return render_template(
+        'dashboard.html',
+        posts=posts,
+        journey=journey,
+        documents=documents,
+        messages=messages,
+        followers=followers
+    )
 
 # --- HYBRID AI CHAT ---
 @app.route('/api/gemini', methods=['POST'])
@@ -205,10 +226,21 @@ def block_user():
 
 @app.route('/api/posts', methods=['POST'])
 def create_post():
-    if not session.get('admin'): return jsonify({'error': '403'}), 403
+    if not session.get('admin'):
+        return jsonify({'error': '403'}), 403
+
     d = request.json
     img = save_base64_image(d.get('imageUrl', '')) if 'base64' in d.get('imageUrl', '') else ''
-    get_db().execute('INSERT INTO posts (title, description, image_url, category) VALUES (?, ?, ?, ?)', (d['title'], d['description'], img, d['category'])).connection.commit()
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        "INSERT INTO posts (title, description, image_url, category) VALUES (%s, %s, %s, %s)",
+        (d['title'], d['description'], img, d['category'])
+    )
+
+    conn.commit()
     return jsonify({'status': 'success'})
 
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
@@ -250,11 +282,30 @@ def delete_doc(id):
 @app.route('/api/contact', methods=['POST'])
 def contact():
     d = request.json
-    if get_db().execute('SELECT name FROM blocked_users WHERE name = ?', (d['name'],)).fetchone(): return jsonify({'status': 'error', 'message': 'Blocked.'})
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', d['email']): return jsonify({'status': 'error', 'message': 'Invalid Email Format'})
-    
-    get_db().execute('INSERT INTO messages (name, email, message) VALUES (?, ?, ?)', (d['name'], d['email'], d['message'])).connection.commit()
-    trigger_email(GMAIL_USER, f"Contact: {d['name']}", f"From: {d['name']} ({d['email']})\n\n{d['message']}")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("SELECT name FROM blocked_users WHERE name = %s", (d['name'],))
+    if cur.fetchone():
+        return jsonify({'status': 'error', 'message': 'Blocked.'})
+
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', d['email']):
+        return jsonify({'status': 'error', 'message': 'Invalid Email Format'})
+
+    cur.execute(
+        "INSERT INTO messages (name, email, message) VALUES (%s, %s, %s)",
+        (d['name'], d['email'], d['message'])
+    )
+
+    conn.commit()
+
+    trigger_email(
+        GMAIL_USER,
+        f"Contact: {d['name']}",
+        f"From: {d['name']} ({d['email']})\n\n{d['message']}"
+    )
+
     return jsonify({'status': 'success', 'message': 'Message Sent!'})
 
 @app.route('/api/follow', methods=['POST'])
@@ -288,7 +339,11 @@ def init_db_pg():
     cur = conn.cursor()
 
     with open('schema.sql', 'r') as f:
-        cur.execute(f.read())
+        sql = f.read()
+
+    for statement in sql.split(';'):
+        if statement.strip():
+            cur.execute(statement)
 
     conn.commit()
     cur.close()
