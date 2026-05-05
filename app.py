@@ -191,56 +191,50 @@ def create_post():
 
 @app.route('/api/posts/<int:post_id>/like', methods=['POST'])
 def like_post(post_id):
+
     data = request.get_json()
 
-if not data:
-    return jsonify({'error': 'No JSON received'}), 400
+    if not data:
+        return jsonify({'error': 'No JSON received'}), 400
 
-guest_id = data.get('guest_id')
+    guest_id = data.get('guest_id')
 
-if not guest_id:
-    return jsonify({'error': 'guest_id required'}), 400
+    if not guest_id:
+        return jsonify({'error': 'guest_id required'}), 400
 
-    # guest_id = data.get('guest_id')
-    
+    conn = get_db()
+    cur = conn.cursor()
 
-    # if not guest_id:
-    #     return jsonify({'error': 'guest_id required'}), 400
+    try:
+        cur.execute(
+            "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
+            (post_id, guest_id)
+        )
 
-    # conn = get_db()
-    # cur = conn.cursor()
+        cur.execute(
+            "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING likes",
+            (post_id,)
+        )
 
-    # try:
-    #     cur.execute(
-    #         "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
-    #         (post_id, guest_id)
-    #     )
+        new_likes = cur.fetchone()[0]
 
-    #     cur.execute(
-    #         "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING likes",
-    #         (post_id,)
-    #     )
+        conn.commit()
 
-    #     new_likes = cur.fetchone()[0]
+        return jsonify({
+            'status': 'liked',
+            'likes': new_likes
+        })
 
-    #     conn.commit()
+    except Exception:
+        conn.rollback()
 
-    #     return jsonify({
-    #         'status': 'liked',
-    #         'likes': new_likes
-    #     })
+        cur.execute("SELECT likes FROM posts WHERE id = %s", (post_id,))
+        likes = cur.fetchone()[0]
 
-    # except Exception:
-    #     conn.rollback()
-
-    #     # fetch existing likes
-    #     cur.execute("SELECT likes FROM posts WHERE id = %s", (post_id,))
-    #     likes = cur.fetchone()[0]
-
-    #     return jsonify({
-    #         'status': 'already_liked',
-    #         'likes': likes
-    #     })
+        return jsonify({
+            'status': 'already_liked',
+            'likes': likes
+        })
 
 # ---------------- logout ---------------- #
 
