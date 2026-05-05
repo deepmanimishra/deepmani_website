@@ -187,6 +187,37 @@ def create_post():
     conn.commit()
     return jsonify({'status': 'success'})
 
+# ---------------- LIKE APIs ---------------- #
+
+@app.route('/api/posts/<int:post_id>/like', methods=['POST'])
+def like_post(post_id):
+    data = request.json
+    guest_id = data.get('guest_id')
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # 1. Try inserting like
+        cur.execute(
+            "INSERT INTO post_likes (post_id, guest_id) VALUES (%s, %s)",
+            (post_id, guest_id)
+        )
+
+        # 2. Increase like count
+        cur.execute(
+            "UPDATE posts SET likes = likes + 1 WHERE id = %s",
+            (post_id,)
+        )
+
+        conn.commit()
+
+        return jsonify({'status': 'liked'})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'status': 'already_liked'})
+
 # ---------------- logout ---------------- #
 
 @app.route('/api/admin/logout')
@@ -233,24 +264,24 @@ def init_db():
 
 # ---------------- UPDATE DB ---------------- #
 
-@app.route('/update-db')
-def update_db():
-    conn = get_db()
-    cur = conn.cursor()
+# @app.route('/update-db')
+# def update_db():
+#     conn = get_db()
+#     cur = conn.cursor()
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS post_likes (
-            id SERIAL PRIMARY KEY,
-            post_id INTEGER,
-            guest_id TEXT,
-            UNIQUE(post_id, guest_id)
-        );
-    """)
+#     cur.execute("""
+#         CREATE TABLE IF NOT EXISTS post_likes (
+#             id SERIAL PRIMARY KEY,
+#             post_id INTEGER,
+#             guest_id TEXT,
+#             UNIQUE(post_id, guest_id)
+#         );
+#     """)
 
-    conn.commit()
-    cur.close()
+#     conn.commit()
+#     cur.close()
 
-    return "Database Updated"
+#     return "Database Updated"
 
 # ---------------- RUN ---------------- #
 
