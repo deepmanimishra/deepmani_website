@@ -180,7 +180,7 @@ function likePost() {
         // update like count instantly
         document.getElementById('detail-likes').innerText = data.likes;
         // update all like counters of same post
-        document.querySelectorAll(`[data-post-id="${currentPostId}"]`)
+        document.querySelectorAll(`.like-count[data-post-id="${currentPostId}"]`)
         .forEach(el => {
          el.innerText = data.likes;
         });

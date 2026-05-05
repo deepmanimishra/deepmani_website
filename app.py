@@ -108,7 +108,7 @@ def save_base64_image(data_url):
     with open(path, "wb") as f:
         f.write(data)
 
-    return f"/static/uploads/{filename}"
+    return data_url
 
 # ---------------- ROUTES ---------------- #
 
