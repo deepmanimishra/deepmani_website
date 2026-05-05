@@ -231,6 +231,27 @@ def init_db():
     conn.commit()
     return "DB Initialized"
 
+# ---------------- UPDATE DB ---------------- #
+
+@app.route('/update-db')
+def update_db():
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS post_likes (
+            id SERIAL PRIMARY KEY,
+            post_id INTEGER,
+            guest_id TEXT,
+            UNIQUE(post_id, guest_id)
+        );
+    """)
+
+    conn.commit()
+    cur.close()
+
+    return "Database Updated"
+
 # ---------------- RUN ---------------- #
 
 if __name__ == '__main__':

@@ -64,7 +64,15 @@ CREATE TABLE site_config (
     value TEXT
 );
 
+CREATE TABLE post_likes (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER,
+    guest_id TEXT,
+    UNIQUE(post_id, guest_id)
+);
+
 INSERT INTO site_config (key, value) VALUES
 ('profile_name', 'Deepmani Mishraa'),
 ('profile_bio', 'Student | IIT Madras'),
 ('profile_image', '/static/profile.jpg');
+
