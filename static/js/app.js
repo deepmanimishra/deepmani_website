@@ -148,5 +148,37 @@ function openPostDetail(el) {
     fetch(`/api/posts/${currentPostId}/comments`).then(r=>r.json()).then(c=>{ const l=document.getElementById('comments-list'); l.innerHTML=''; c.forEach(x=>{ l.innerHTML+=`<div class="flex gap-2 mb-2"><div class="font-bold text-cyan-400">${x.author_initial}:</div><div class="text-gray-300">${x.content}</div></div>`; }); });
     openModal('postDetailModal');
 }
-function likePost() { if(!visitorIdentity)return openModal('identityModal'); fetch(`/api/posts/${currentPostId}/like`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user:visitorIdentity.name})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else document.getElementById('detail-likes').innerText=d.likes; }); }
-function submitComment() { if(!visitorIdentity)return openModal('identityModal'); const t=document.getElementById('comment-input').value; fetch(`/api/posts/${currentPostId}/comments`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:visitorIdentity.name, author_initial:visitorIdentity.avatarInitial, text:t})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else { document.getElementById('comment-input').value=''; openPostDetail({dataset:{id:currentPostId, title:document.getElementById('detail-title').innerText, desc:document.getElementById('detail-desc').innerText, image:document.getElementById('detail-image').src, likes:document.getElementById('detail-likes').innerText}}); } }); }
+function likePost() {
+    if (!visitorIdentity) {
+        return openModal('identityModal');
+    }
+
+    fetch(`/api/posts/${currentPostId}/like`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            guest_id: visitorIdentity.name
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        // update like count instantly
+        document.getElementById('detail-likes').innerText = data.likes;
+
+        if (data.status === 'liked') {
+            showToast("Liked ❤️", "success");
+        } else {
+            showToast("Already liked", "error");
+        }
+    })
+    .catch(() => {
+        showToast("Error liking post", "error");
+    });
+}function submitComment() { if(!visitorIdentity)return openModal('identityModal'); const t=document.getElementById('comment-input').value; fetch(`/api/posts/${currentPostId}/comments`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:visitorIdentity.name, author_initial:visitorIdentity.avatarInitial, text:t})}).then(r=>r.json()).then(d=>{ if(d.error) showToast('Blocked by Admin','error'); else { document.getElementById('comment-input').value=''; openPostDetail({dataset:{id:currentPostId, title:document.getElementById('detail-title').innerText, desc:document.getElementById('detail-desc').innerText, image:document.getElementById('detail-image').src, likes:document.getElementById('detail-likes').innerText}}); } }); }
