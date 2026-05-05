@@ -187,6 +187,13 @@ def create_post():
     conn.commit()
     return jsonify({'status': 'success'})
 
+# ---------------- logout ---------------- #
+
+@app.route('/api/admin/logout')
+def admin_logout():
+    session.clear()
+    return jsonify({'status': 'success'})
+
 # ---------------- CONTACT ---------------- #
 
 @app.route('/api/contact', methods=['POST'])
