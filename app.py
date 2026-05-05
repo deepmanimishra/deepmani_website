@@ -115,25 +115,7 @@ def save_base64_image(data_url):
 
 @app.route('/')
 def index():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("SELECT * FROM posts ORDER BY id DESC")
-    posts = cur.fetchall()
-
-    cur.execute("SELECT * FROM journey ORDER BY year DESC")
-    journey = cur.fetchall()
-
-    cur.execute("SELECT * FROM documents ORDER BY uploaded_at DESC")
-    documents = cur.fetchall()
-
-    return render_template(
-        'index.html',
-        posts=posts,
-        journey=journey,
-        documents=documents,
-        categories=["Tech", "Startup", "Research", "Achievements", "Personal"]
-    )
+    return "WORKING"
 
 @app.route('/dashboard')
 def dashboard():
