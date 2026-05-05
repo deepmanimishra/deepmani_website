@@ -192,7 +192,7 @@ def create_post():
 @app.route('/api/admin/logout')
 def admin_logout():
     session.clear()
-    return jsonify({'status': 'success'})
+    return redirect('/')
 
 # ---------------- CONTACT ---------------- #
 
