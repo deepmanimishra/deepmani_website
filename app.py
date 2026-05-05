@@ -267,6 +267,19 @@ def comments(id):
         return jsonify({'status': 'success'})
     return jsonify([dict(r) for r in get_db().execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC', (id,)).fetchall()])
 
+@app.route('/init-db')
+def init_db_pg():
+    conn = get_db()
+    cur = conn.cursor()
+
+    with open('schema.sql', 'r') as f:
+        cur.execute(f.read())
+
+    conn.commit()
+    cur.close()
+
+    return "Tables Created Successfully"
+
 if __name__ == '__main__':
     # We still keep this for local testing
     app.run(debug=True, port=5000)
