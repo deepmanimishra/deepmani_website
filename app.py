@@ -1,5 +1,6 @@
 import os
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import requests
 import base64
 import time
@@ -19,7 +20,7 @@ load_dotenv()
 app = Flask(__name__)
 # Secure secret key
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key_fallback")
-DATABASE = 'portfolio.db'
+
 UPLOAD_FOLDER = 'static/uploads'
 
 # --- CONFIGURATION (SECURED) ---
@@ -35,40 +36,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def get_db():
-    db = getattr(g, '_database', None)
-    if db is None: db = g._database = sqlite3.connect(DATABASE); db.row_factory = sqlite3.Row
-    return db
+    if 'db' not in g:
+        g.db = psycopg2.connect(
+            os.environ.get("DATABASE_URL"),
+            sslmode='require'
+        )
+    return g.db
 
 @app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None: db.close()
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 # --- CRITICAL FIX FOR RENDER 500 ERROR ---
-def init_db_command():
-    if not os.path.exists(DATABASE):
-        print("Creating Database for Render...")
-        conn = sqlite3.connect(DATABASE)
-        # Check if schema.sql exists, otherwise create tables manually to prevent crash
-        if os.path.exists('schema.sql'):
-            with app.open_resource('schema.sql', mode='r') as f:
-                conn.cursor().executescript(f.read())
-        else:
-            # Emergency Schema Creation if file is missing
-            c = conn.cursor()
-            c.execute('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, title TEXT, description TEXT, category TEXT, image_url TEXT, likes INTEGER DEFAULT 0)')
-            c.execute('CREATE TABLE IF NOT EXISTS journey (id INTEGER PRIMARY KEY, year TEXT, title TEXT, description TEXT)')
-            c.execute('CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY, title TEXT, file_path TEXT, uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-            c.execute('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, name TEXT, email TEXT, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-            c.execute('CREATE TABLE IF NOT EXISTS followers (id INTEGER PRIMARY KEY, email TEXT, name TEXT, followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-            c.execute('CREATE TABLE IF NOT EXISTS blocked_users (name TEXT UNIQUE)')
-            c.execute('CREATE TABLE IF NOT EXISTS site_config (key TEXT PRIMARY KEY, value TEXT)')
-        conn.commit()
-        conn.close()
-        print("Database Created Successfully.")
-
-# EXECUTE IMMEDIATELY
-init_db_command()
 
 # --- SAFE PROFILE LOADER ---
 @app.context_processor
@@ -191,7 +172,7 @@ def admin_reply():
 @app.route('/api/admin/block', methods=['POST'])
 def block_user():
     if not session.get('admin'): return jsonify({'error': '403'}), 403
-    get_db().execute('INSERT OR IGNORE INTO blocked_users (name) VALUES (?)', (request.json['name'],)).connection.commit()
+    get_db().execute('INSERT INTO blocked_users (name) VALUES (%s) ON CONFLICT DO NOTHING', (request.json['name'],)).connection.commit()
     return jsonify({'status': 'success'})
 
 @app.route('/api/posts', methods=['POST'])
@@ -205,7 +186,7 @@ def create_post():
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
 def delete_post(id):
     if not session.get('admin'): return jsonify({'error': '403'}), 403
-    get_db().execute('DELETE FROM posts WHERE id = ?', (id,)).connection.commit()
+    get_db().execute('DELETE FROM posts WHERE id = %s', (id,)).connection.commit()
     return jsonify({'status': 'success'})
 
 @app.route('/api/journey', methods=['POST'])
@@ -218,7 +199,7 @@ def add_journey():
 @app.route('/api/journey/<int:id>', methods=['DELETE'])
 def delete_journey(id):
     if not session.get('admin'): return jsonify({'error': '403'}), 403
-    get_db().execute('DELETE FROM journey WHERE id = ?', (id,)).connection.commit()
+    get_db().execute('DELETE FROM journey WHERE id = %s', (id,)).connection.commit()
     return jsonify({'status': 'success'})
 
 @app.route('/api/documents', methods=['POST'])
@@ -235,7 +216,7 @@ def upload_doc():
 @app.route('/api/documents/<int:id>', methods=['DELETE'])
 def delete_doc(id):
     if not session.get('admin'): return jsonify({'error': '403'}), 403
-    get_db().execute('DELETE FROM documents WHERE id = ?', (id,)).connection.commit()
+    get_db().execute('DELETE FROM documents WHERE id = %s', (id,)).connection.commit()
     return jsonify({'status': 'success'})
 
 @app.route('/api/contact', methods=['POST'])
@@ -261,8 +242,8 @@ def follow():
 @app.route('/api/posts/<int:id>/like', methods=['POST'])
 def like(id):
     if get_db().execute('SELECT name FROM blocked_users WHERE name = ?', (request.json.get('user'),)).fetchone(): return jsonify({'error': 'Blocked'})
-    get_db().execute('UPDATE posts SET likes = likes + 1 WHERE id = ?', (id,)).connection.commit()
-    return jsonify({'likes': get_db().execute('SELECT likes FROM posts WHERE id = ?', (id,)).fetchone()['likes']})
+    get_db().execute('UPDATE posts SET likes = likes + 1 WHERE id = %s', (id,)).connection.commit()
+    return jsonify({'likes': get_db().execute('SELECT likes FROM posts WHERE id = %s', (id,)).fetchone()['likes']})
 
 @app.route('/api/posts/<int:id>/comments', methods=['GET', 'POST'])
 def comments(id):
